@@ -25,30 +25,6 @@ template UTXOChecker(nAssets, nIns, nOuts) {
     signal output commitments[nOuts];
     signal output ownerMemosHash[nOuts];
 
-    // Sum up inputs using intermediate signals
-    // for (var i = 0; i < nAssets; i++) {}
-
-    // component ise_out[nAssets * nOuts];
-
-    // for (var i = 0; i < nAssets * nOuts; i++) {
-    //     ise_out[i] = IsEqual();
-    // }
-
-    // /// Sum up outputs
-    // for (var i = 0; i < nOuts; i++) {
-    //     for (var j = 0; j < nAssets; j++) {
-    //         component ise = IsEqual();
-    //         ise.in[0] <== out_asset[i];
-    //         ise.in[1] <== all_assets[j];
-    //         out_sums[j] <== out_sums[j] + out_amount[i] * ise.out;  
-    //     }
-    // }
-
-    // /// Check if the sum of inputs is equal to the sum of outputs
-    // for (var i = 0; i < nAssets; i++) {
-    //     in_sums[i] === out_sums[i];
-    // }
-
     /// Compute commitments and nullifiers
     component input_compute_commitments[nIns];
     component input_compute_nullifiers[nIns];

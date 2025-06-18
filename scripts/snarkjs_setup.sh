@@ -6,7 +6,7 @@ PTAU_SIZE=$2
 mkdir -p target/circuits
 mkdir -p target/ptaus
 
-circom circuits/${CIRCOM_NAME}.circom --r1cs --wasm -o target/circuits/ -l ../circomlib/circuits || exit 1
+circom circuits/circom/${CIRCOM_NAME}.circom --r1cs --wasm -o target/circuits/ -l libs/circomlib/circuits || exit 1
 
 cd target/circuits || exit 1
 
