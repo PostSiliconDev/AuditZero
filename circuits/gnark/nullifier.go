@@ -16,6 +16,10 @@ type NullifierCircuit struct {
 	Nullifier  frontend.Variable `gnark:"nullifier,public"`
 }
 
+func NewNullifierCircuit() *NullifierCircuit {
+	return &NullifierCircuit{}
+}
+
 func (circuit *NullifierCircuit) Define(api frontend.API) error {
 	hasher, err := NewPoseidonHasher(api)
 	if err != nil {
@@ -60,7 +64,7 @@ func (nullifier *Nullifier) Compute() fr.Element {
 	return res
 }
 
-func (nullifier *Nullifier) ToCircuit() *NullifierCircuit {
+func (nullifier *Nullifier) ToWitness() *NullifierCircuit {
 	nullifier_hash := nullifier.Compute()
 
 	return &NullifierCircuit{

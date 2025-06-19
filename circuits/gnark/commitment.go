@@ -63,7 +63,7 @@ func (commitment *Commitment) Compute() fr.Element {
 	return res
 }
 
-func (commitment *Commitment) ToCircuit() *CommitmentCircuit {
+func (commitment *Commitment) ToWitness() *CommitmentCircuit {
 	commitment_hash := commitment.Compute()
 
 	return &CommitmentCircuit{

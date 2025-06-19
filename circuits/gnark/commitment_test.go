@@ -1,6 +1,7 @@
-package circuits
+package circuits_test
 
 import (
+	circuits "hide-pay/circuits/gnark"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -12,7 +13,7 @@ import (
 
 func TestCommitment_Compute(t *testing.T) {
 	// Test basic commitment computation
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -28,25 +29,25 @@ func TestCommitment_Compute(t *testing.T) {
 
 func TestCommitment_Compute_DifferentInputs(t *testing.T) {
 	// Test that different inputs produce different commitments
-	commitment1 := &Commitment{
+	commitment1 := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	commitment2 := &Commitment{
+	commitment2 := &circuits.Commitment{
 		Asset:    fr.NewElement(54321), // Different asset
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	commitment3 := &Commitment{
+	commitment3 := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(98765), // Different amount
 		Blinding: fr.NewElement(11111),
 	}
 
-	commitment4 := &Commitment{
+	commitment4 := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(22222), // Different blinding factor
@@ -68,7 +69,7 @@ func TestCommitment_Compute_DifferentInputs(t *testing.T) {
 
 func TestCommitment_Compute_Deterministic(t *testing.T) {
 	// Test that same inputs produce same commitment (deterministic)
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -85,7 +86,7 @@ func TestCommitment_Compute_Deterministic(t *testing.T) {
 
 func TestCommitment_Compute_ZeroValues(t *testing.T) {
 	// Test zero value inputs
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(0),
 		Amount:   fr.NewElement(0),
 		Blinding: fr.NewElement(0),
@@ -97,7 +98,7 @@ func TestCommitment_Compute_ZeroValues(t *testing.T) {
 
 func TestCommitment_Compute_LargeValues(t *testing.T) {
 	// Test large values
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(0xFFFFFFFFFFFFFFFF),
 		Amount:   fr.NewElement(0xFFFFFFFFFFFFFFFF),
 		Blinding: fr.NewElement(0xFFFFFFFFFFFFFFFF),
@@ -107,71 +108,66 @@ func TestCommitment_Compute_LargeValues(t *testing.T) {
 	assert.NotEqual(t, fr.Element{}, result)
 }
 
-func TestCommitment_ToCircuit(t *testing.T) {
+func TestCommitment_ToWitness(t *testing.T) {
 	// Test conversion to circuit
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	circuit := commitment.ToCircuit()
-	require.NotNil(t, circuit)
+	witness := commitment.ToWitness()
+	require.NotNil(t, witness)
 
 	// Verify circuit fields
-	assert.Equal(t, commitment.Asset, circuit.Asset)
-	assert.Equal(t, commitment.Amount, circuit.Amount)
-	assert.Equal(t, commitment.Blinding, circuit.Blinding)
+	assert.Equal(t, commitment.Asset, witness.Asset)
+	assert.Equal(t, commitment.Amount, witness.Amount)
+	assert.Equal(t, commitment.Blinding, witness.Blinding)
 
 	// Verify commitment field should be the computed hash
 	expectedCommitment := commitment.Compute()
-	assert.Equal(t, expectedCommitment, circuit.Commitment)
+	assert.Equal(t, expectedCommitment, witness.Commitment)
 }
 
 func TestCommitment_ToCircuit_Consistency(t *testing.T) {
 	// Test consistency of multiple conversions
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	circuit1 := commitment.ToCircuit()
-	circuit2 := commitment.ToCircuit()
-	circuit3 := commitment.ToCircuit()
+	witness1 := commitment.ToWitness()
+	witness2 := commitment.ToWitness()
+	witness3 := commitment.ToWitness()
 
 	// All conversion results should be the same
-	assert.Equal(t, circuit1.Asset, circuit2.Asset)
-	assert.Equal(t, circuit1.Amount, circuit2.Amount)
-	assert.Equal(t, circuit1.Blinding, circuit2.Blinding)
-	assert.Equal(t, circuit1.Commitment, circuit2.Commitment)
+	assert.Equal(t, witness1.Asset, witness2.Asset)
+	assert.Equal(t, witness1.Amount, witness2.Amount)
+	assert.Equal(t, witness1.Blinding, witness2.Blinding)
+	assert.Equal(t, witness1.Commitment, witness2.Commitment)
 
-	assert.Equal(t, circuit1.Asset, circuit3.Asset)
-	assert.Equal(t, circuit1.Amount, circuit3.Amount)
-	assert.Equal(t, circuit1.Blinding, circuit3.Blinding)
-	assert.Equal(t, circuit1.Commitment, circuit3.Commitment)
+	assert.Equal(t, witness1.Asset, witness3.Asset)
+	assert.Equal(t, witness1.Amount, witness3.Amount)
+	assert.Equal(t, witness1.Blinding, witness3.Blinding)
+	assert.Equal(t, witness1.Commitment, witness3.Commitment)
 }
 
 func TestCommitment_Circuit_Verification(t *testing.T) {
 	// Test commitment circuit verification
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	circuit := commitment.ToCircuit()
+	circuit := circuits.NewCommitmentCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
 	// Create witness
-	witness := &CommitmentCircuit{
-		Asset:      commitment.Asset,
-		Amount:     commitment.Amount,
-		Blinding:   commitment.Blinding,
-		Commitment: commitment.Compute(),
-	}
+	witness := commitment.ToWitness()
 
 	// Verify circuit
 	options := test.WithCurves(ecc.BN254)
@@ -180,24 +176,20 @@ func TestCommitment_Circuit_Verification(t *testing.T) {
 
 func TestCommitment_Circuit_InvalidWitness(t *testing.T) {
 	// Test circuit verification with invalid witness
-	commitment := &Commitment{
+	commitment := &circuits.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	circuit := commitment.ToCircuit()
+	circuit := circuits.NewCommitmentCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
 	// Create invalid witness (wrong commitment value)
-	witness := &CommitmentCircuit{
-		Asset:      commitment.Asset,
-		Amount:     commitment.Amount,
-		Blinding:   commitment.Blinding,
-		Commitment: fr.NewElement(99999), // Wrong commitment value
-	}
+	witness := commitment.ToWitness()
+	witness.Commitment = fr.NewElement(99999) // Wrong commitment value
 
 	// Circuit verification should fail
 	options := test.WithCurves(ecc.BN254)
@@ -238,23 +230,19 @@ func TestCommitment_Circuit_DifferentInputs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			commitment := &Commitment{
+			commitment := &circuits.Commitment{
 				Asset:    fr.NewElement(tc.asset),
 				Amount:   fr.NewElement(tc.amount),
 				Blinding: fr.NewElement(tc.blinding),
 			}
 
-			circuit := commitment.ToCircuit()
+			circuit := circuits.NewCommitmentCircuit()
 			require.NotNil(t, circuit)
 
-			assert := test.NewAssert(t)
+			witness := commitment.ToWitness()
+			require.NotNil(t, witness)
 
-			witness := &CommitmentCircuit{
-				Asset:      commitment.Asset,
-				Amount:     commitment.Amount,
-				Blinding:   commitment.Blinding,
-				Commitment: commitment.Compute(),
-			}
+			assert := test.NewAssert(t)
 
 			options := test.WithCurves(ecc.BN254)
 
@@ -309,7 +297,7 @@ func TestCommitment_Compute_EdgeCases(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			commitment := &Commitment{
+			commitment := &circuits.Commitment{
 				Asset:    fr.NewElement(tc.asset),
 				Amount:   fr.NewElement(tc.amount),
 				Blinding: fr.NewElement(tc.blinding),
