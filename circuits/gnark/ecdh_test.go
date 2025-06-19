@@ -123,7 +123,7 @@ func TestECDH_Circuit_Verification(t *testing.T) {
 	// Test ECDH circuit verification
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	circuit := circuits.NewECDHCircuit(ecdh)
+	circuit := circuits.NewECDHCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
@@ -140,7 +140,7 @@ func TestECDH_Circuit_InvalidWitness(t *testing.T) {
 	// Test circuit verification with invalid witness
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	circuit := circuits.NewECDHCircuit(ecdh)
+	circuit := circuits.NewECDHCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
@@ -193,7 +193,7 @@ func TestECDH_Circuit_DifferentInputs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ecdh := circuits.NewECDH(tc.secretKey, tc.secretKey)
 
-			circuit := circuits.NewECDHCircuit(ecdh)
+			circuit := circuits.NewECDHCircuit()
 			require.NotNil(t, circuit)
 
 			// Create witness

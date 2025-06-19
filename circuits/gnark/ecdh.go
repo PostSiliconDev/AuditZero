@@ -19,7 +19,7 @@ type ECDHCircuit struct {
 	SharedKeyY frontend.Variable `gnark:"sharedKeyY,public"`
 }
 
-func NewECDHCircuit(ecdh *ECDH) *ECDHCircuit {
+func NewECDHCircuit() *ECDHCircuit {
 	return &ECDHCircuit{}
 }
 
