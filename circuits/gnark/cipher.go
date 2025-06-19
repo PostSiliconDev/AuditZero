@@ -2,7 +2,6 @@ package circuits
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	poseidonbn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
@@ -15,6 +14,13 @@ type StreamCipherCircuit struct {
 	Nonce      frontend.Variable
 	Plaintext  []frontend.Variable
 	Ciphertext []frontend.Variable `gnark:",public"`
+}
+
+func NewStreamCipherCircuit(plaintext_len int) *StreamCipherCircuit {
+	return &StreamCipherCircuit{
+		Plaintext:  make([]frontend.Variable, plaintext_len),
+		Ciphertext: make([]frontend.Variable, plaintext_len+1),
+	}
 }
 
 func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
@@ -31,8 +37,8 @@ func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
 
 	perm.Permutation(state)
 
-	if len(circuit.Plaintext) != len(circuit.Ciphertext) {
-		return fmt.Errorf("plaintext and ciphertext must have the same length")
+	if len(circuit.Plaintext)+1 != len(circuit.Ciphertext) {
+		return fmt.Errorf("ciphertext must greater than plaintext by 1")
 	}
 
 	if len(circuit.Plaintext)%2 != 0 {
@@ -40,14 +46,16 @@ func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
 	}
 
 	for i := 0; i < len(circuit.Plaintext); i += 2 {
-		state[0] = api.Xor(state[0], circuit.Plaintext[i])
-		state[1] = api.Xor(state[1], circuit.Plaintext[i+1])
+		state[0] = api.Add(state[0], circuit.Plaintext[i])
+		state[1] = api.Add(state[1], circuit.Plaintext[i+1])
 
 		api.AssertIsEqual(state[0], circuit.Ciphertext[i])
 		api.AssertIsEqual(state[1], circuit.Ciphertext[i+1])
 
 		perm.Permutation(state)
 	}
+
+	api.AssertIsEqual(state[0], circuit.Ciphertext[len(circuit.Ciphertext)-1])
 
 	return nil
 }
@@ -78,11 +86,11 @@ func (cipher *StreamCipher) Encrypt(
 	ciphertext := make([]fr.Element, len(plaintext)+1)
 
 	for i := 0; i < len(plaintext); i += 2 {
-		state[0] = xor(state[0], plaintext[i])
-		state[1] = xor(state[1], plaintext[i+1])
+		ciphertext[i].Add(&state[0], &plaintext[i])
+		ciphertext[i+1].Add(&state[1], &plaintext[i+1])
 
-		ciphertext[i] = state[0]
-		ciphertext[i+1] = state[1]
+		state[0] = ciphertext[i]
+		state[1] = ciphertext[i+1]
 
 		hasher.Permutation(state)
 	}
@@ -118,11 +126,11 @@ func (cipher *StreamCipher) Decrypt(
 	plaintext := make([]fr.Element, len(ciphertext)-1)
 
 	for i := 0; i < len(ciphertext)-1; i += 2 {
-		plaintext[i] = xor(state[0], ciphertext[i])
-		plaintext[i+1] = xor(state[1], ciphertext[i+1])
+		plaintext[i].Sub(&ciphertext[i], &state[0])
+		plaintext[i+1].Sub(&ciphertext[i+1], &state[1])
 
-		state[0] = xor(state[0], plaintext[i])
-		state[1] = xor(state[1], plaintext[i+1])
+		state[0] = ciphertext[i]
+		state[1] = ciphertext[i+1]
 
 		hasher.Permutation(state)
 	}
@@ -133,19 +141,4 @@ func (cipher *StreamCipher) Decrypt(
 	}
 
 	return plaintext, nil
-}
-
-func xor(a, b fr.Element) fr.Element {
-	aBitInt := new(big.Int)
-	bBitInt := new(big.Int)
-
-	a.BigInt(aBitInt)
-	b.BigInt(bBitInt)
-
-	aBitInt.Xor(aBitInt, bBitInt)
-
-	res := fr.Element{}
-	res.SetBigInt(aBitInt)
-
-	return res
 }
