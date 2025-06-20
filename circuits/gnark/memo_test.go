@@ -31,7 +31,7 @@ func TestMemo_Encrypt(t *testing.T) {
 		Blinding: fr.NewElement(11111),
 	}
 
-	ciphertext, err := memo.Encrypt(*commitment)
+	_, ciphertext, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 	require.NotNil(t, ciphertext)
 	assert.NotEmpty(t, ciphertext)
@@ -61,10 +61,10 @@ func TestMemo_Encrypt_DifferentInputs(t *testing.T) {
 		Blinding: fr.NewElement(11111),
 	}
 
-	ciphertext1, err := memo.Encrypt(*commitment1)
+	_, ciphertext1, err := memo.Encrypt(*commitment1)
 	require.NoError(t, err)
 
-	ciphertext2, err := memo.Encrypt(*commitment2)
+	_, ciphertext2, err := memo.Encrypt(*commitment2)
 	require.NoError(t, err)
 
 	// Ciphertexts should be different
@@ -84,13 +84,13 @@ func TestMemo_Encrypt_Deterministic(t *testing.T) {
 		Blinding: fr.NewElement(11111),
 	}
 
-	ciphertext1, err := memo.Encrypt(*commitment)
+	_, ciphertext1, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 
-	ciphertext2, err := memo.Encrypt(*commitment)
+	_, ciphertext2, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 
-	ciphertext3, err := memo.Encrypt(*commitment)
+	_, ciphertext3, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 
 	// All ciphertexts should be the same
@@ -113,7 +113,7 @@ func TestMemo_Decrypt(t *testing.T) {
 	}
 
 	// Encrypt first
-	ciphertext, err := memo.Encrypt(*originalCommitment)
+	_, ciphertext, err := memo.Encrypt(*originalCommitment)
 	require.NoError(t, err)
 
 	// Then decrypt
@@ -195,7 +195,7 @@ func TestMemo_EncryptDecrypt_RoundTrip(t *testing.T) {
 			}
 
 			// Encrypt
-			ciphertext, err := memo.Encrypt(*originalCommitment)
+			_, ciphertext, err := memo.Encrypt(*originalCommitment)
 			require.NoError(t, err)
 
 			// Decrypt
@@ -229,7 +229,7 @@ func TestMemo_Decrypt_WrongKey(t *testing.T) {
 	}
 
 	// Encrypt with memo1
-	ciphertext, err := memo1.Encrypt(*commitment)
+	_, ciphertext, err := memo1.Encrypt(*commitment)
 	require.NoError(t, err)
 
 	// Try to decrypt with memo2 (wrong key)
@@ -288,7 +288,7 @@ func TestMemo_EdgeCases(t *testing.T) {
 			}
 
 			// Test encryption
-			ciphertext, err := memo.Encrypt(*commitment)
+			_, ciphertext, err := memo.Encrypt(*commitment)
 			require.NoError(t, err)
 			require.NotNil(t, ciphertext)
 
@@ -319,13 +319,13 @@ func TestMemo_Consistency(t *testing.T) {
 	}
 
 	// Multiple encrypt operations should produce same result
-	ciphertext1, err := memo.Encrypt(*commitment)
+	_, ciphertext1, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 
-	ciphertext2, err := memo.Encrypt(*commitment)
+	_, ciphertext2, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 
-	ciphertext3, err := memo.Encrypt(*commitment)
+	_, ciphertext3, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 
 	assert.Equal(t, ciphertext1, ciphertext2)
@@ -367,7 +367,7 @@ func TestMemo_LargeSecretKey(t *testing.T) {
 	}
 
 	// Test encryption
-	ciphertext, err := memo.Encrypt(*commitment)
+	_, ciphertext, err := memo.Encrypt(*commitment)
 	require.NoError(t, err)
 	require.NotNil(t, ciphertext)
 
@@ -377,6 +377,40 @@ func TestMemo_LargeSecretKey(t *testing.T) {
 	require.NotNil(t, decryptedCommitment)
 
 	// Verify round trip
+	assert.Equal(t, commitment.Asset, decryptedCommitment.Asset)
+	assert.Equal(t, commitment.Amount, decryptedCommitment.Amount)
+	assert.Equal(t, commitment.Blinding, decryptedCommitment.Blinding)
+}
+
+func TestMemo_Exchange_Encrypt_Decrypt(t *testing.T) {
+	ephemeralSecretKey := big.NewInt(1111111)
+	receiverSecretKey := big.NewInt(22222)
+
+	receiverPublicKey := buildPublicKey(*receiverSecretKey)
+
+	// Test exchange encrypt and decrypt
+	memo1 := &circuits.Memo{
+		SecretKey: *ephemeralSecretKey,
+		PublicKey: receiverPublicKey,
+	}
+
+	commitment := &circuits.Commitment{
+		Asset:    fr.NewElement(12345),
+		Amount:   fr.NewElement(67890),
+		Blinding: fr.NewElement(11111),
+	}
+
+	ephemeralPublicKey, ciphertext, err := memo1.Encrypt(*commitment)
+	require.NoError(t, err)
+
+	memo2 := &circuits.Memo{
+		SecretKey: *receiverSecretKey,
+		PublicKey: *ephemeralPublicKey,
+	}
+
+	decryptedCommitment, err := memo2.Decrypt(ciphertext)
+	require.NoError(t, err)
+
 	assert.Equal(t, commitment.Asset, decryptedCommitment.Asset)
 	assert.Equal(t, commitment.Amount, decryptedCommitment.Amount)
 	assert.Equal(t, commitment.Blinding, decryptedCommitment.Blinding)

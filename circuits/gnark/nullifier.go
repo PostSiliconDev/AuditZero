@@ -57,10 +57,15 @@ func (circuit *NullifierCircuit) Define(api frontend.API) error {
 }
 
 type Nullifier struct {
-	Asset      fr.Element
-	Amount     fr.Element
-	Blinding   fr.Element
+	Commitment
 	PrivateKey fr.Element
+}
+
+func (nullifier *Nullifier) ToGadget() *NullifierGadget {
+	return &NullifierGadget{
+		CommitmentGadget: *nullifier.Commitment.ToGadget(),
+		PrivateKey:       nullifier.PrivateKey,
+	}
 }
 
 func (nullifier *Nullifier) Compute() fr.Element {

@@ -10,12 +10,29 @@ import (
 )
 
 func TestUTXO_BuildAndCheck(t *testing.T) {
+	receiverSecretKey := big.NewInt(11111)
+	auditSecretKey := big.NewInt(22222)
+
+	receiverPublicKey := buildPublicKey(*receiverSecretKey)
+	auditPublicKey := buildPublicKey(*auditSecretKey)
+
 	utxo := &circuits.UTXO{
 		Nullifier: []circuits.Nullifier{
 			{
-				Asset:    fr.NewElement(1),
-				Amount:   fr.NewElement(2),
-				Blinding: fr.NewElement(3),
+				Commitment: circuits.Commitment{
+					Asset:    fr.NewElement(1),
+					Amount:   fr.NewElement(2),
+					Blinding: fr.NewElement(3),
+				},
+				PrivateKey: fr.NewElement(1),
+			},
+			{
+				Commitment: circuits.Commitment{
+					Asset:    fr.NewElement(1),
+					Amount:   fr.NewElement(2),
+					Blinding: fr.NewElement(4),
+				},
+				PrivateKey: fr.NewElement(2),
 			},
 		},
 		Commitment: []circuits.Commitment{
@@ -25,19 +42,58 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 				Blinding: fr.NewElement(3),
 			},
 		},
-		EphemeralSecretKey: []big.Int{
+		EphemeralReceiverSecretKey: []big.Int{
 			*big.NewInt(1),
 		},
-		ReceiverPublicKey: [2]fr.Element{
-			fr.NewElement(1),
-			fr.NewElement(2),
+		EphemeralAuditSecretKey: []big.Int{
+			*big.NewInt(2),
 		},
-		AuditPublicKey: [2]fr.Element{
-			fr.NewElement(3),
-			fr.NewElement(4),
-		},
+		ReceiverPublicKey: receiverPublicKey,
+		AuditPublicKey:    auditPublicKey,
 	}
 
-	_, err := utxo.BuildAndCheck()
+	result, err := utxo.BuildAndCheck()
 	require.NoError(t, err)
+
+	for i := 0; i < len(result.Commitments); i++ {
+		commitment := result.Commitments[i]
+
+		memo1 := circuits.Memo{
+			SecretKey: *receiverSecretKey,
+			PublicKey: commitment.OwnerEphemeralPublickKey,
+		}
+
+		ownerMemoCiphertext := []fr.Element{
+			commitment.OwnerMemo[0],
+			commitment.OwnerMemo[1],
+			commitment.OwnerMemo[2],
+			commitment.OwnerHMAC,
+		}
+
+		decryptedOwnerMemo, err := memo1.Decrypt(ownerMemoCiphertext)
+		require.NoError(t, err)
+		require.Equal(t, decryptedOwnerMemo.Asset, utxo.Commitment[i].Asset)
+		require.Equal(t, decryptedOwnerMemo.Amount, utxo.Commitment[i].Amount)
+		require.Equal(t, decryptedOwnerMemo.Blinding, utxo.Commitment[i].Blinding)
+
+		memo2 := circuits.Memo{
+			SecretKey: *auditSecretKey,
+			PublicKey: commitment.AuditEphemeralPublickKey,
+		}
+
+		auditMemoCiphertext := []fr.Element{
+			commitment.AuditMemo[0],
+			commitment.AuditMemo[1],
+			commitment.AuditMemo[2],
+			commitment.AuditHMAC,
+		}
+
+		decryptedAuditMemo, err := memo2.Decrypt(auditMemoCiphertext)
+		require.NoError(t, err)
+		require.Equal(t, decryptedAuditMemo.Asset, utxo.Commitment[i].Asset)
+		require.Equal(t, decryptedAuditMemo.Amount, utxo.Commitment[i].Amount)
+		require.Equal(t, decryptedAuditMemo.Blinding, utxo.Commitment[i].Blinding)
+	}
 }
+
+func TestUTXO_ToGadget(t *testing.T) {}

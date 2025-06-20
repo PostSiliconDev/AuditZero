@@ -63,7 +63,7 @@ type Memo struct {
 	PublicKey twistededwardbn254.PointAffine
 }
 
-func (memo *Memo) Encrypt(commitment Commitment) ([]fr.Element, error) {
+func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffine, []fr.Element, error) {
 	ecdh := ECDH{
 		PublicKey: memo.PublicKey,
 		SecretKey: memo.SecretKey,
@@ -89,7 +89,12 @@ func (memo *Memo) Encrypt(commitment Commitment) ([]fr.Element, error) {
 		commitment.Blinding,
 	}
 
-	return streamCipher.Encrypt(ad, plaintext)
+	ciphertext, err := streamCipher.Encrypt(ad, plaintext)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt: %w", err)
+	}
+
+	return ephemeralPublicKey, ciphertext, nil
 }
 
 func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {

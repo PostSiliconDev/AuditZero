@@ -16,7 +16,7 @@ import (
 
 func TestECDH_Compute(t *testing.T) {
 	// Test basic ECDH computation
-	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
+	ecdh := circuits.NewECDH(*big.NewInt(11144), *big.NewInt(22222))
 
 	sharedKey := ecdh.Compute()
 

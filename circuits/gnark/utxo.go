@@ -10,19 +10,20 @@ import (
 )
 
 type UTXOGadget struct {
-	Nullifier          []NullifierGadget   `gnark:"nullifier"`
-	Commitment         []CommitmentGadget  `gnark:"commitment"`
-	EphemeralSecretKey []frontend.Variable `gnark:"ephemeralSecretKey"`
+	Nullifier                  []NullifierGadget   `gnark:"nullifier"`
+	Commitment                 []CommitmentGadget  `gnark:"commitment"`
+	EphemeralReceiverSecretKey []frontend.Variable `gnark:"ephemeralReceiverSecretKey"`
+	EphemeralAuditSecretKey    []frontend.Variable `gnark:"ephemeralAuditSecretKey"`
 
 	ReceiverPublicKey [2]frontend.Variable `gnark:"receiverPublicKey"`
 	AuditPublicKey    [2]frontend.Variable `gnark:"auditPublicKey"`
 }
 
 type UTXOResultGadget struct {
-	Nullifiers  []frontend.Variable `gnark:"nullifier"`
-	Commitments []frontend.Variable `gnark:"commitment"`
-	OwnerMemos  []frontend.Variable `gnark:"ownerMemo"`
-	AuditMemos  []frontend.Variable `gnark:"auditMemo"`
+	Nullifiers      []frontend.Variable `gnark:"nullifier"`
+	Commitments     []frontend.Variable `gnark:"commitment"`
+	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemo"`
+	AuditMemoHashes []frontend.Variable `gnark:"auditMemo"`
 }
 
 func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, error) {
@@ -30,8 +31,8 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 	commitments := make([]frontend.Variable, len(gadget.Commitment))
 
 	// Check that the number of nullifiers, commitments, and ephemeral secret keys are the same
-	if len(gadget.Commitment) != len(gadget.EphemeralSecretKey) {
-		return nil, fmt.Errorf("number of nullifiers, commitments, and ephemeral secret keys must be the same")
+	if len(gadget.Commitment) != len(gadget.EphemeralReceiverSecretKey) || len(gadget.Commitment) != len(gadget.EphemeralAuditSecretKey) {
+		return nil, fmt.Errorf("number of nullifiers, commitments, and ephemeral receiver and audit secret keys must be the same")
 	}
 
 	// Check balance of left and right side of the UTXO
@@ -44,8 +45,8 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		nullifiers[i] = nullifier
 	}
 
-	ownerMemos := make([]frontend.Variable, len(gadget.EphemeralSecretKey)*4)
-	auditMemos := make([]frontend.Variable, len(gadget.EphemeralSecretKey)*4)
+	ownerMemoHashes := make([]frontend.Variable, len(gadget.EphemeralReceiverSecretKey))
+	auditMemoHashes := make([]frontend.Variable, len(gadget.EphemeralAuditSecretKey))
 
 	for i := range gadget.Commitment {
 		commitment, err := gadget.Commitment[i].Compute(api)
@@ -55,57 +56,125 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		commitments[i] = commitment
 
 		ownerMemoGadget := MemoGadget{
-			EphemeralSecretKey: gadget.EphemeralSecretKey[i],
+			EphemeralSecretKey: gadget.EphemeralReceiverSecretKey[i],
 			ReceiverPublicKey:  gadget.ReceiverPublicKey,
 		}
 
-		ownerMemo, err := ownerMemoGadget.Generate(api, gadget.Commitment[i])
+		ownerMemoHash, err := ownerMemoGadget.Generate(api, gadget.Commitment[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate owner memo: %w", err)
 		}
-		ownerMemos[i*4] = ownerMemo
+		ownerMemoHashes[i] = ownerMemoHash
 
 		auditMemoGadget := MemoGadget{
-			EphemeralSecretKey: gadget.EphemeralSecretKey[i],
+			EphemeralSecretKey: gadget.EphemeralAuditSecretKey[i],
 			ReceiverPublicKey:  gadget.AuditPublicKey,
 		}
 
-		auditMemo, err := auditMemoGadget.Generate(api, gadget.Commitment[i])
+		auditMemoHash, err := auditMemoGadget.Generate(api, gadget.Commitment[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate audit memo: %w", err)
 		}
-		auditMemos[i*4] = auditMemo
+		auditMemoHashes[i] = auditMemoHash
+	}
+
+	return &UTXOResultGadget{
+		Nullifiers:      nullifiers,
+		Commitments:     commitments,
+		OwnerMemoHashes: ownerMemoHashes,
+		AuditMemoHashes: auditMemoHashes,
+	}, nil
+}
+
+type UTXO struct {
+	Nullifier                  []Nullifier
+	Commitment                 []Commitment
+	EphemeralReceiverSecretKey []big.Int
+	EphemeralAuditSecretKey    []big.Int
+
+	ReceiverPublicKey twistededwardbn254.PointAffine
+	AuditPublicKey    twistededwardbn254.PointAffine
+}
+
+func (utxo *UTXO) ToGadget() *UTXOGadget {
+	nullifiers := make([]NullifierGadget, len(utxo.Nullifier))
+	commitments := make([]CommitmentGadget, len(utxo.Commitment))
+
+	for i := range utxo.Nullifier {
+		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
+	}
+
+	for i := range utxo.Commitment {
+		commitments[i] = *utxo.Commitment[i].ToGadget()
+	}
+
+	ephemeralReceiverSecretKeys := make([]frontend.Variable, len(utxo.EphemeralReceiverSecretKey))
+	ephemeralAuditSecretKeys := make([]frontend.Variable, len(utxo.EphemeralAuditSecretKey))
+
+	for i := range utxo.EphemeralReceiverSecretKey {
+		ephemeralReceiverSecretKeys[i] = utxo.EphemeralReceiverSecretKey[i]
+	}
+
+	receiverPublicKey := [2]frontend.Variable{
+		utxo.ReceiverPublicKey.X,
+		utxo.ReceiverPublicKey.Y,
+	}
+
+	auditPublicKey := [2]frontend.Variable{
+		utxo.AuditPublicKey.X,
+		utxo.AuditPublicKey.Y,
+	}
+
+	return &UTXOGadget{
+		Nullifier:                  nullifiers,
+		Commitment:                 commitments,
+		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
+		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
+		ReceiverPublicKey:          receiverPublicKey,
+		AuditPublicKey:             auditPublicKey,
+	}
+}
+
+type UTXOResult struct {
+	Nullifiers  []fr.Element
+	Commitments []UTXOCommitment
+}
+
+type UTXOCommitment struct {
+	Commitment               fr.Element
+	OwnerMemo                [3]fr.Element
+	OwnerHMAC                fr.Element
+	OwnerEphemeralPublickKey twistededwardbn254.PointAffine
+	AuditMemo                [3]fr.Element
+	AuditHMAC                fr.Element
+	AuditEphemeralPublickKey twistededwardbn254.PointAffine
+}
+
+func (result *UTXOResult) ToGadget() *UTXOResultGadget {
+	nullifiers := make([]frontend.Variable, len(result.Nullifiers))
+	commitments := make([]frontend.Variable, len(result.Commitments))
+	ownerMemoHashes := make([]frontend.Variable, len(result.Commitments))
+	auditMemoHashes := make([]frontend.Variable, len(result.Commitments))
+
+	for i := range result.Nullifiers {
+		nullifiers[i] = result.Nullifiers[i]
+	}
+
+	for i := range result.Commitments {
+		commitments[i] = result.Commitments[i].Commitment
+		ownerMemoHashes[i] = result.Commitments[i].OwnerMemo
+		auditMemoHashes[i] = result.Commitments[i].AuditMemo
 	}
 
 	return &UTXOResultGadget{
 		Nullifiers:  nullifiers,
 		Commitments: commitments,
-		OwnerMemos:  ownerMemos,
-		AuditMemos:  auditMemos,
-	}, nil
-}
-
-type UTXO struct {
-	Nullifier          []Nullifier
-	Commitment         []Commitment
-	EphemeralSecretKey []big.Int
-
-	ReceiverPublicKey [2]fr.Element
-	AuditPublicKey    [2]fr.Element
-}
-
-type UTXOResult struct {
-	Nullifiers    []fr.Element
-	Commitments   []fr.Element
-	OwnerMemos    []fr.Element
-	OwnerMemoHMAC fr.Element
-	AuditMemos    []fr.Element
-	AuditMemoHMAC fr.Element
+	}
 }
 
 func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 	nullifiers := make([]fr.Element, len(utxo.Nullifier))
-	commitments := make([]fr.Element, len(utxo.Commitment))
+	commitments := make([]UTXOCommitment, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
 		nullifiers[i] = utxo.Nullifier[i].Compute()
@@ -113,56 +182,58 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 
 	// Check balance of left and right side of the UTXO
 
-	ownerMemos := make([]fr.Element, len(utxo.EphemeralSecretKey)*4)
-	auditMemos := make([]fr.Element, len(utxo.EphemeralSecretKey)*4)
-
 	result := UTXOResult{
-		Nullifiers:    nullifiers,
-		Commitments:   commitments,
-		OwnerMemos:    ownerMemos,
-		OwnerMemoHMAC: fr.Element{},
-		AuditMemos:    auditMemos,
-		AuditMemoHMAC: fr.Element{},
+		Nullifiers:  nullifiers,
+		Commitments: commitments,
 	}
 
 	for i := range utxo.Commitment {
-		commitments[i] = utxo.Commitment[i].Compute()
+
+		commitment := utxo.Commitment[i].Compute()
 
 		ownerMemo := Memo{
-			SecretKey: utxo.EphemeralSecretKey[i],
-			PublicKey: twistededwardbn254.PointAffine{
-				X: utxo.ReceiverPublicKey[0],
-				Y: utxo.ReceiverPublicKey[1],
-			},
+			SecretKey: utxo.EphemeralReceiverSecretKey[i],
+			PublicKey: utxo.ReceiverPublicKey,
 		}
 
-		ownerMemoCiphertext, err := ownerMemo.Encrypt(utxo.Commitment[i])
+		ownerMemoEphemeralPublickKey, ownerMemoCiphertext, err := ownerMemo.Encrypt(utxo.Commitment[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt owner memo: %w", err)
-		} else {
-			ownerMemos[i*4] = ownerMemoCiphertext[0]
-			ownerMemos[i*4+1] = ownerMemoCiphertext[1]
-			ownerMemos[i*4+2] = ownerMemoCiphertext[2]
-			result.OwnerMemoHMAC = ownerMemoCiphertext[3]
 		}
+
+		ownerMemoData := [3]fr.Element{
+			ownerMemoCiphertext[0],
+			ownerMemoCiphertext[1],
+			ownerMemoCiphertext[2],
+		}
+		ownerHMAC := ownerMemoCiphertext[3]
 
 		auditMemo := Memo{
-			SecretKey: utxo.EphemeralSecretKey[i],
-			PublicKey: twistededwardbn254.PointAffine{
-				X: utxo.AuditPublicKey[0],
-				Y: utxo.AuditPublicKey[1],
-			},
+			SecretKey: utxo.EphemeralAuditSecretKey[i],
+			PublicKey: utxo.AuditPublicKey,
 		}
 
-		auditMemoCiphertext, err := auditMemo.Encrypt(utxo.Commitment[i])
+		auditMemoEphemeralPublickKey, auditMemoCiphertext, err := auditMemo.Encrypt(utxo.Commitment[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt audit memo: %w", err)
 		}
 
-		auditMemos[i*4] = auditMemoCiphertext[0]
-		auditMemos[i*4+1] = auditMemoCiphertext[1]
-		auditMemos[i*4+2] = auditMemoCiphertext[2]
-		result.AuditMemoHMAC = auditMemoCiphertext[3]
+		auditMemoData := [3]fr.Element{
+			auditMemoCiphertext[0],
+			auditMemoCiphertext[1],
+			auditMemoCiphertext[2],
+		}
+		auditHMAC := auditMemoCiphertext[3]
+
+		commitments[i] = UTXOCommitment{
+			Commitment:               commitment,
+			OwnerMemo:                ownerMemoData,
+			OwnerHMAC:                ownerHMAC,
+			OwnerEphemeralPublickKey: *ownerMemoEphemeralPublickKey,
+			AuditMemo:                auditMemoData,
+			AuditHMAC:                auditHMAC,
+			AuditEphemeralPublickKey: *auditMemoEphemeralPublickKey,
+		}
 	}
 
 	return &result, nil

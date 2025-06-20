@@ -26,14 +26,12 @@ func (gadget *ECDHGadget) Compute(publicKey [2]frontend.Variable, secretKey fron
 		return [2]frontend.Variable{}, fmt.Errorf("failed to create twistededwards curve: %w", err)
 	}
 
-	params := te.Params()
-
-	base_point := twistededwards.Point{
-		X: params.Base[0],
-		Y: params.Base[1],
+	publicPoint := twistededwards.Point{
+		X: publicKey[0],
+		Y: publicKey[1],
 	}
 
-	sharedKey := te.ScalarMul(base_point, secretKey)
+	sharedKey := te.ScalarMul(publicPoint, secretKey)
 
 	return [2]frontend.Variable{sharedKey.X, sharedKey.Y}, nil
 }
@@ -79,11 +77,10 @@ func NewECDH(receiverSecretKey big.Int, senderSecretKey big.Int) *ECDH {
 }
 
 func (ecdh *ECDH) Compute() twistededwardbn254.PointAffine {
-	base_point := twistededwardbn254.GetEdwardsCurve().Base
+	sharedKey := twistededwardbn254.PointAffine{}
+	sharedKey.ScalarMultiplication(&ecdh.PublicKey, &ecdh.SecretKey)
 
-	shared_key := base_point.ScalarMultiplication(&base_point, &ecdh.SecretKey)
-
-	return *shared_key
+	return sharedKey
 }
 
 func (ecdh *ECDH) ToWitness() *ECDHCircuit {

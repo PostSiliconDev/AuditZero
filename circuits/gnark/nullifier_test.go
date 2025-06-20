@@ -14,9 +14,11 @@ import (
 func TestNullifier_Compute(t *testing.T) {
 	// Test basic nullifier computation
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -32,41 +34,51 @@ func TestNullifier_Compute(t *testing.T) {
 func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 	// Test that different inputs produce different nullifiers
 	base := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
 	// Different asset
 	nullifier1 := &circuits.Nullifier{
-		Asset:      fr.NewElement(54321),
-		Amount:     base.Amount,
-		Blinding:   base.Blinding,
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(54321),
+			Amount:   base.Amount,
+			Blinding: base.Blinding,
+		},
 		PrivateKey: base.PrivateKey,
 	}
 
 	// Different amount
 	nullifier2 := &circuits.Nullifier{
-		Asset:      base.Asset,
-		Amount:     fr.NewElement(98765),
-		Blinding:   base.Blinding,
+		Commitment: circuits.Commitment{
+			Asset:    base.Asset,
+			Amount:   fr.NewElement(98765),
+			Blinding: base.Blinding,
+		},
 		PrivateKey: base.PrivateKey,
 	}
 
 	// Different blinding
 	nullifier3 := &circuits.Nullifier{
-		Asset:      base.Asset,
-		Amount:     base.Amount,
-		Blinding:   fr.NewElement(33333),
+		Commitment: circuits.Commitment{
+			Asset:    base.Asset,
+			Amount:   base.Amount,
+			Blinding: fr.NewElement(33333),
+		},
 		PrivateKey: base.PrivateKey,
 	}
 
 	// Different private key
 	nullifier4 := &circuits.Nullifier{
-		Asset:      base.Asset,
-		Amount:     base.Amount,
-		Blinding:   base.Blinding,
+		Commitment: circuits.Commitment{
+			Asset:    base.Asset,
+			Amount:   base.Amount,
+			Blinding: base.Blinding,
+		},
 		PrivateKey: fr.NewElement(44444),
 	}
 
@@ -92,9 +104,11 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 func TestNullifier_Compute_Deterministic(t *testing.T) {
 	// Test that same inputs produce same nullifier (deterministic)
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -110,9 +124,11 @@ func TestNullifier_Compute_Deterministic(t *testing.T) {
 func TestNullifier_Compute_ZeroValues(t *testing.T) {
 	// Test zero value inputs
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(0),
-		Amount:     fr.NewElement(0),
-		Blinding:   fr.NewElement(0),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(0),
+			Amount:   fr.NewElement(0),
+			Blinding: fr.NewElement(0),
+		},
 		PrivateKey: fr.NewElement(0),
 	}
 
@@ -123,9 +139,11 @@ func TestNullifier_Compute_ZeroValues(t *testing.T) {
 func TestNullifier_Compute_LargeValues(t *testing.T) {
 	// Test large values
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(0xFFFFFFFFFFFFFFFF),
-		Amount:     fr.NewElement(0xFFFFFFFFFFFFFFFF),
-		Blinding:   fr.NewElement(0xFFFFFFFFFFFFFFFF),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			Amount:   fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			Blinding: fr.NewElement(0xFFFFFFFFFFFFFFFF),
+		},
 		PrivateKey: fr.NewElement(0xFFFFFFFFFFFFFFFF),
 	}
 
@@ -136,9 +154,11 @@ func TestNullifier_Compute_LargeValues(t *testing.T) {
 func TestNullifier_ToWitness(t *testing.T) {
 	// Test conversion to circuit
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -159,9 +179,11 @@ func TestNullifier_ToWitness(t *testing.T) {
 func TestNullifier_ToWitness_Consistency(t *testing.T) {
 	// Test consistency of multiple conversions
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -186,9 +208,11 @@ func TestNullifier_ToWitness_Consistency(t *testing.T) {
 func TestNullifier_Circuit_Verification(t *testing.T) {
 	// Test nullifier circuit verification
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -208,9 +232,11 @@ func TestNullifier_Circuit_Verification(t *testing.T) {
 func TestNullifier_Circuit_InvalidWitness(t *testing.T) {
 	// Test circuit verification with invalid witness
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -246,9 +272,11 @@ func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			nullifier := &circuits.Nullifier{
-				Asset:      fr.NewElement(tc.asset),
-				Amount:     fr.NewElement(tc.amount),
-				Blinding:   fr.NewElement(tc.blinding),
+				Commitment: circuits.Commitment{
+					Asset:    fr.NewElement(tc.asset),
+					Amount:   fr.NewElement(tc.amount),
+					Blinding: fr.NewElement(tc.blinding),
+				},
 				PrivateKey: fr.NewElement(tc.privateKey),
 			}
 
@@ -268,9 +296,11 @@ func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
 func TestNullifier_ToCommitment(t *testing.T) {
 	// Test conversion to commitment
 	nullifier := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -302,9 +332,11 @@ func TestNullifier_Compute_EdgeCases(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			nullifier := &circuits.Nullifier{
-				Asset:      fr.NewElement(tc.asset),
-				Amount:     fr.NewElement(tc.amount),
-				Blinding:   fr.NewElement(tc.blinding),
+				Commitment: circuits.Commitment{
+					Asset:    fr.NewElement(tc.asset),
+					Amount:   fr.NewElement(tc.amount),
+					Blinding: fr.NewElement(tc.blinding),
+				},
 				PrivateKey: fr.NewElement(tc.privateKey),
 			}
 
@@ -328,9 +360,11 @@ func TestNullifier_Compute_EdgeCases(t *testing.T) {
 func TestNullifier_Uniqueness(t *testing.T) {
 	// Test that nullifiers are unique for different inputs
 	base := &circuits.Nullifier{
-		Asset:      fr.NewElement(12345),
-		Amount:     fr.NewElement(67890),
-		Blinding:   fr.NewElement(11111),
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(12345),
+			Amount:   fr.NewElement(67890),
+			Blinding: fr.NewElement(11111),
+		},
 		PrivateKey: fr.NewElement(22222),
 	}
 
@@ -338,9 +372,11 @@ func TestNullifier_Uniqueness(t *testing.T) {
 
 	// Test with same inputs but different private key (should produce different nullifier)
 	nullifierSameInputs := &circuits.Nullifier{
-		Asset:      base.Asset,
-		Amount:     base.Amount,
-		Blinding:   base.Blinding,
+		Commitment: circuits.Commitment{
+			Asset:    base.Asset,
+			Amount:   base.Amount,
+			Blinding: base.Blinding,
+		},
 		PrivateKey: fr.NewElement(33333), // Different private key
 	}
 
@@ -349,9 +385,11 @@ func TestNullifier_Uniqueness(t *testing.T) {
 
 	// Test with same private key but different other inputs
 	nullifierSameKey := &circuits.Nullifier{
-		Asset:      fr.NewElement(54321), // Different asset
-		Amount:     base.Amount,
-		Blinding:   base.Blinding,
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(54321), // Different asset
+			Amount:   base.Amount,
+			Blinding: base.Blinding,
+		},
 		PrivateKey: base.PrivateKey,
 	}
 

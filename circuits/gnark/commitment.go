@@ -60,6 +60,18 @@ type Commitment struct {
 	Blinding fr.Element
 }
 
+func (commitment *Commitment) ToGadget() *CommitmentGadget {
+	return &CommitmentGadget{
+		Asset:    commitment.Asset,
+		Amount:   commitment.Amount,
+		Blinding: commitment.Blinding,
+	}
+}
+
+func (commitment *Commitment) String() string {
+	return fmt.Sprintf("Commitment(Asset: %s, Amount: %s, Blinding: %s)", commitment.Asset.Text(10), commitment.Amount.Text(10), commitment.Blinding.Text(10))
+}
+
 func (commitment *Commitment) Compute() fr.Element {
 	hasher := poseidon2.NewMerkleDamgardHasher()
 
