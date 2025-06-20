@@ -17,8 +17,8 @@ func TestStreamCipher_EncryptDecrypt(t *testing.T) {
 	nonce := fr.NewElement(67890)
 
 	cipher := &circuits.StreamCipher{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]fr.Element{key, key},
+		Nonce: [2]fr.Element{nonce, nonce},
 	}
 
 	plaintext := []fr.Element{
@@ -48,8 +48,8 @@ func TestStreamCipher_EncryptDecrypt_EmptyPlaintext(t *testing.T) {
 	nonce := fr.NewElement(67890)
 
 	cipher := &circuits.StreamCipher{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]fr.Element{key, key},
+		Nonce: [2]fr.Element{nonce, nonce},
 	}
 
 	plaintext := []fr.Element{}
@@ -68,8 +68,8 @@ func TestStreamCipher_Encrypt_OddLengthError(t *testing.T) {
 	nonce := fr.NewElement(67890)
 
 	cipher := &circuits.StreamCipher{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]fr.Element{key, key},
+		Nonce: [2]fr.Element{nonce, nonce},
 	}
 
 	plaintext := []fr.Element{
@@ -88,8 +88,8 @@ func TestStreamCipher_Decrypt_EmptyCiphertext(t *testing.T) {
 	nonce := fr.NewElement(67890)
 
 	cipher := &circuits.StreamCipher{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]fr.Element{key, key},
+		Nonce: [2]fr.Element{nonce, nonce},
 	}
 
 	// 测试空密文
@@ -103,8 +103,8 @@ func TestStreamCipher_Decrypt_InvalidHMAC(t *testing.T) {
 	nonce := fr.NewElement(67890)
 
 	cipher := &circuits.StreamCipher{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]fr.Element{key, key},
+		Nonce: [2]fr.Element{nonce, nonce},
 	}
 
 	// 创建有效的密文
@@ -129,13 +129,12 @@ func TestStreamCipher_Decrypt_OddLengthCiphertext(t *testing.T) {
 	nonce := fr.NewElement(67890)
 
 	cipher := &circuits.StreamCipher{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]fr.Element{key, key},
+		Nonce: [2]fr.Element{nonce, nonce},
 	}
 
-	// 测试奇数长度的密文（不包括 HMAC）
 	ciphertext := []fr.Element{
-		fr.NewElement(100), // 奇数个元素
+		fr.NewElement(100),
 	}
 
 	_, err := cipher.Decrypt(ciphertext)
@@ -143,9 +142,9 @@ func TestStreamCipher_Decrypt_OddLengthCiphertext(t *testing.T) {
 }
 
 func TestStreamCipher_DifferentKeys(t *testing.T) {
-	key1 := fr.NewElement(12345)
-	key2 := fr.NewElement(54321)
-	nonce := fr.NewElement(67890)
+	key1 := [2]fr.Element{fr.NewElement(12345), fr.NewElement(12345)}
+	key2 := [2]fr.Element{fr.NewElement(54321), fr.NewElement(54321)}
+	nonce := [2]fr.Element{fr.NewElement(67890), fr.NewElement(67890)}
 
 	cipher1 := &circuits.StreamCipher{Key: key1, Nonce: nonce}
 	cipher2 := &circuits.StreamCipher{Key: key2, Nonce: nonce}
@@ -165,9 +164,9 @@ func TestStreamCipher_DifferentKeys(t *testing.T) {
 }
 
 func TestStreamCipher_DifferentNonces(t *testing.T) {
-	key := fr.NewElement(12345)
-	nonce1 := fr.NewElement(67890)
-	nonce2 := fr.NewElement(98765)
+	key := [2]fr.Element{fr.NewElement(12345), fr.NewElement(12345)}
+	nonce1 := [2]fr.Element{fr.NewElement(67890), fr.NewElement(67890)}
+	nonce2 := [2]fr.Element{fr.NewElement(98765), fr.NewElement(98765)}
 
 	cipher1 := &circuits.StreamCipher{Key: key, Nonce: nonce1}
 	cipher2 := &circuits.StreamCipher{Key: key, Nonce: nonce2}
@@ -188,8 +187,8 @@ func TestStreamCipher_DifferentNonces(t *testing.T) {
 
 func TestStreamCipher_Circuit(t *testing.T) {
 
-	key := fr.NewElement(12345)
-	nonce := fr.NewElement(67890)
+	key := [2]fr.Element{fr.NewElement(12345), fr.NewElement(12345)}
+	nonce := [2]fr.Element{fr.NewElement(67890), fr.NewElement(67890)}
 
 	cipher := &circuits.StreamCipher{
 		Key:   key,
@@ -215,8 +214,8 @@ func TestStreamCipher_Circuit(t *testing.T) {
 	options := test.WithCurves(ecc.BN254)
 
 	witness := &circuits.StreamCipherCircuit{
-		Key:   key,
-		Nonce: nonce,
+		Key:   [2]frontend.Variable{key[0], key[1]},
+		Nonce: [2]frontend.Variable{nonce[0], nonce[1]},
 		Plaintext: []frontend.Variable{
 			plaintext[0],
 			plaintext[1],

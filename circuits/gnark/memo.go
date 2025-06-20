@@ -7,10 +7,7 @@ type MemoCircuit struct {
 
 	EphemeralSecretKey frontend.Variable `gnark:"ephemeralSecretKey"`
 
-	ReceiverPublicKeyX frontend.Variable `gnark:"receiverPublicKeyX"`
-	ReceiverPublicKeyY frontend.Variable `gnark:"receiverPublicKeyY"`
-
-	EncryptedHash frontend.Variable `gnark:"encryptedHash,public"`
+	ReceiverPublicKey [2]frontend.Variable `gnark:"receiverPublicKey"`
 }
 
 func NewMemoCircuit() *MemoCircuit {
@@ -18,8 +15,6 @@ func NewMemoCircuit() *MemoCircuit {
 }
 
 func (circuit *MemoCircuit) Define(api frontend.API) error {
-	ecdh := ECDHCircuit{}
-	ecdh.Define(api)
 
 	return nil
 }

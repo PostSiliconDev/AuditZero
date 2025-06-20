@@ -19,7 +19,7 @@ func NewStreamCipherGadget(api frontend.API) *StreamCipherGadget {
 	}
 }
 
-func (gadget *StreamCipherGadget) Encrypt(key frontend.Variable, nonce frontend.Variable, plaintext []frontend.Variable) ([]frontend.Variable, error) {
+func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, nonce [2]frontend.Variable, plaintext []frontend.Variable) ([]frontend.Variable, error) {
 	params := poseidonbn254.GetDefaultParameters()
 	perm, err := poseidon.NewPoseidon2FromParameters(gadget.api, params.Width, params.NbFullRounds, params.NbPartialRounds)
 	if err != nil {
@@ -27,9 +27,14 @@ func (gadget *StreamCipherGadget) Encrypt(key frontend.Variable, nonce frontend.
 	}
 
 	state := []frontend.Variable{
-		key,
-		nonce,
+		key[0],
+		key[1],
 	}
+
+	perm.Permutation(state)
+
+	state[0] = gadget.api.Add(state[0], nonce[0])
+	state[1] = gadget.api.Add(state[1], nonce[1])
 
 	perm.Permutation(state)
 
@@ -53,8 +58,8 @@ func (gadget *StreamCipherGadget) Encrypt(key frontend.Variable, nonce frontend.
 }
 
 type StreamCipherCircuit struct {
-	Key        frontend.Variable
-	Nonce      frontend.Variable
+	Key        [2]frontend.Variable
+	Nonce      [2]frontend.Variable
 	Plaintext  []frontend.Variable
 	Ciphertext []frontend.Variable `gnark:",public"`
 }
@@ -82,8 +87,8 @@ func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
 }
 
 type StreamCipher struct {
-	Key   fr.Element
-	Nonce fr.Element
+	Key   [2]fr.Element
+	Nonce [2]fr.Element
 }
 
 func (cipher *StreamCipher) Encrypt(
@@ -98,9 +103,14 @@ func (cipher *StreamCipher) Encrypt(
 	}
 
 	state := []fr.Element{
-		cipher.Key,
-		cipher.Nonce,
+		cipher.Key[0],
+		cipher.Key[1],
 	}
+
+	hasher.Permutation(state)
+
+	state[0].Add(&state[0], &cipher.Nonce[0])
+	state[1].Add(&state[1], &cipher.Nonce[1])
 
 	hasher.Permutation(state)
 
@@ -138,9 +148,14 @@ func (cipher *StreamCipher) Decrypt(
 	}
 
 	state := []fr.Element{
-		cipher.Key,
-		cipher.Nonce,
+		cipher.Key[0],
+		cipher.Key[1],
 	}
+
+	hasher.Permutation(state)
+
+	state[0].Add(&state[0], &cipher.Nonce[0])
+	state[1].Add(&state[1], &cipher.Nonce[1])
 
 	hasher.Permutation(state)
 
