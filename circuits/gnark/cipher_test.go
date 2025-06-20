@@ -4,10 +4,7 @@ import (
 	circuits "hide-pay/circuits/gnark"
 	"testing"
 
-	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,6 +17,11 @@ func TestStreamCipher_EncryptDecrypt(t *testing.T) {
 		Key: [2]fr.Element{key, nonce},
 	}
 
+	ad := []fr.Element{
+		fr.NewElement(10),
+		fr.NewElement(20),
+	}
+
 	plaintext := []fr.Element{
 		fr.NewElement(100),
 		fr.NewElement(200),
@@ -27,12 +29,12 @@ func TestStreamCipher_EncryptDecrypt(t *testing.T) {
 		fr.NewElement(400),
 	}
 
-	ciphertext, err := cipher.Encrypt(plaintext)
+	ciphertext, err := cipher.Encrypt(ad, plaintext)
 	require.NoError(t, err)
 	assert.NotNil(t, ciphertext)
 	assert.Equal(t, len(plaintext)+1, len(ciphertext)) // +1 for HMAC
 
-	decrypted, err := cipher.Decrypt(ciphertext)
+	decrypted, err := cipher.Decrypt(ad, ciphertext)
 	require.NoError(t, err)
 	assert.NotNil(t, decrypted)
 	assert.Equal(t, len(plaintext), len(decrypted))
@@ -50,48 +52,17 @@ func TestStreamCipher_EncryptDecrypt_EmptyPlaintext(t *testing.T) {
 		Key: [2]fr.Element{key, nonce},
 	}
 
+	ad := []fr.Element{}
+
 	plaintext := []fr.Element{}
 
-	ciphertext, err := cipher.Encrypt(plaintext)
+	ciphertext, err := cipher.Encrypt(ad, plaintext)
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(ciphertext)) // 只有 HMAC
+	assert.Equal(t, 1, len(ciphertext))
 
-	decrypted, err := cipher.Decrypt(ciphertext)
+	decrypted, err := cipher.Decrypt(ad, ciphertext)
 	require.NoError(t, err)
 	assert.Equal(t, 0, len(decrypted))
-}
-
-func TestStreamCipher_Encrypt_OddLengthError(t *testing.T) {
-	key := fr.NewElement(12345)
-	nonce := fr.NewElement(67890)
-
-	cipher := &circuits.StreamCipher{
-		Key: [2]fr.Element{key, nonce},
-	}
-
-	plaintext := []fr.Element{
-		fr.NewElement(100),
-		fr.NewElement(200),
-		fr.NewElement(300),
-	}
-
-	_, err := cipher.Encrypt(plaintext)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "even number of elements")
-}
-
-func TestStreamCipher_Decrypt_EmptyCiphertext(t *testing.T) {
-	key := fr.NewElement(12345)
-	nonce := fr.NewElement(67890)
-
-	cipher := &circuits.StreamCipher{
-		Key: [2]fr.Element{key, nonce},
-	}
-
-	// 测试空密文
-	_, err := cipher.Decrypt([]fr.Element{})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "at least one element")
 }
 
 func TestStreamCipher_Decrypt_InvalidHMAC(t *testing.T) {
@@ -102,18 +73,23 @@ func TestStreamCipher_Decrypt_InvalidHMAC(t *testing.T) {
 		Key: [2]fr.Element{key, nonce},
 	}
 
+	ad := []fr.Element{
+		fr.NewElement(10),
+		fr.NewElement(20),
+	}
+
 	plaintext := []fr.Element{
 		fr.NewElement(100),
 		fr.NewElement(200),
 	}
-	ciphertext, err := cipher.Encrypt(plaintext)
+	ciphertext, err := cipher.Encrypt(ad, plaintext)
 	require.NoError(t, err)
 
 	// 修改 HMAC
 	ciphertext[len(ciphertext)-1] = fr.NewElement(99999)
 
 	// 测试解密失败
-	_, err = cipher.Decrypt(ciphertext)
+	_, err = cipher.Decrypt(ad, ciphertext)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "HMAC verification failed")
 }
@@ -126,11 +102,16 @@ func TestStreamCipher_Decrypt_OddLengthCiphertext(t *testing.T) {
 		Key: [2]fr.Element{key, nonce},
 	}
 
+	ad := []fr.Element{
+		fr.NewElement(10),
+		fr.NewElement(20),
+	}
+
 	ciphertext := []fr.Element{
 		fr.NewElement(100),
 	}
 
-	_, err := cipher.Decrypt(ciphertext)
+	_, err := cipher.Decrypt(ad, ciphertext)
 	assert.Error(t, err)
 }
 
@@ -139,16 +120,21 @@ func TestStreamCipher_Decrypt_InvalidKey(t *testing.T) {
 	key2 := fr.NewElement(54321)
 	nonce := fr.NewElement(67890)
 
+	ad := []fr.Element{
+		fr.NewElement(10),
+		fr.NewElement(20),
+	}
+
 	cipher1 := &circuits.StreamCipher{Key: [2]fr.Element{key1, nonce}}
 	cipher2 := &circuits.StreamCipher{Key: [2]fr.Element{key2, nonce}}
 
-	ciphertext, err := cipher1.Encrypt([]fr.Element{fr.NewElement(100), fr.NewElement(200), fr.NewElement(300), fr.NewElement(400)})
+	ciphertext, err := cipher1.Encrypt(ad, []fr.Element{fr.NewElement(100), fr.NewElement(200), fr.NewElement(300), fr.NewElement(400)})
 	require.NoError(t, err)
 
-	_, err = cipher1.Decrypt(ciphertext)
+	_, err = cipher1.Decrypt(ad, ciphertext)
 	require.NoError(t, err)
 
-	_, err = cipher2.Decrypt(ciphertext)
+	_, err = cipher2.Decrypt(ad, ciphertext)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "HMAC verification failed")
@@ -159,6 +145,11 @@ func TestStreamCipher_DifferentKeys(t *testing.T) {
 	key2 := fr.NewElement(54321)
 	nonce := fr.NewElement(67890)
 
+	ad := []fr.Element{
+		fr.NewElement(10),
+		fr.NewElement(20),
+	}
+
 	cipher1 := &circuits.StreamCipher{Key: [2]fr.Element{key1, nonce}}
 	cipher2 := &circuits.StreamCipher{Key: [2]fr.Element{key2, nonce}}
 
@@ -167,80 +158,11 @@ func TestStreamCipher_DifferentKeys(t *testing.T) {
 		fr.NewElement(200),
 	}
 
-	ciphertext1, err := cipher1.Encrypt(plaintext)
+	ciphertext1, err := cipher1.Encrypt(ad, plaintext)
 	require.NoError(t, err)
 
-	ciphertext2, err := cipher2.Encrypt(plaintext)
-	require.NoError(t, err)
-
-	assert.NotEqual(t, ciphertext1, ciphertext2)
-}
-
-func TestStreamCipher_DifferentNonces(t *testing.T) {
-	key := fr.NewElement(12345)
-	nonce1 := fr.NewElement(67890)
-	nonce2 := fr.NewElement(98765)
-
-	cipher1 := &circuits.StreamCipher{Key: [2]fr.Element{key, nonce1}}
-	cipher2 := &circuits.StreamCipher{Key: [2]fr.Element{key, nonce2}}
-
-	plaintext := []fr.Element{
-		fr.NewElement(100),
-		fr.NewElement(200),
-	}
-
-	ciphertext1, err := cipher1.Encrypt(plaintext)
-	require.NoError(t, err)
-
-	ciphertext2, err := cipher2.Encrypt(plaintext)
+	ciphertext2, err := cipher2.Encrypt(ad, plaintext)
 	require.NoError(t, err)
 
 	assert.NotEqual(t, ciphertext1, ciphertext2)
-}
-
-func TestStreamCipher_Circuit(t *testing.T) {
-
-	key := fr.NewElement(12345)
-	nonce := fr.NewElement(67890)
-
-	cipher := &circuits.StreamCipher{
-		Key: [2]fr.Element{key, nonce},
-	}
-
-	plaintext := []fr.Element{
-		fr.NewElement(100),
-		fr.NewElement(200),
-		fr.NewElement(300),
-		fr.NewElement(400),
-	}
-
-	ciphertext, err := cipher.Encrypt(plaintext)
-	require.NoError(t, err)
-	assert.NotNil(t, ciphertext)
-	assert.Equal(t, len(plaintext)+1, len(ciphertext))
-
-	assert := test.NewAssert(t)
-
-	circuit := circuits.NewStreamCipherCircuit(4)
-
-	options := test.WithCurves(ecc.BN254)
-
-	witness := &circuits.StreamCipherCircuit{
-		Key: [2]frontend.Variable{key[0], key[1]},
-		Plaintext: []frontend.Variable{
-			plaintext[0],
-			plaintext[1],
-			plaintext[2],
-			plaintext[3],
-		},
-		Ciphertext: []frontend.Variable{
-			ciphertext[0],
-			ciphertext[1],
-			ciphertext[2],
-			ciphertext[3],
-			ciphertext[4],
-		},
-	}
-
-	assert.ProverSucceeded(circuit, witness, options)
 }

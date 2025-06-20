@@ -12,11 +12,17 @@ import (
 	circuits "hide-pay/circuits/gnark"
 )
 
+func buildPublicKey(secretKey big.Int) twistededwardbn254.PointAffine {
+	basePoint := twistededwardbn254.GetEdwardsCurve().Base
+
+	return *basePoint.ScalarMultiplication(&basePoint, &secretKey)
+}
+
 func TestMemo_Encrypt(t *testing.T) {
 	// Test basic memo encryption
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -39,8 +45,8 @@ func TestMemo_Encrypt(t *testing.T) {
 func TestMemo_Encrypt_DifferentInputs(t *testing.T) {
 	// Test that different inputs produce different ciphertexts
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment1 := &circuits.Commitment{
@@ -68,8 +74,8 @@ func TestMemo_Encrypt_DifferentInputs(t *testing.T) {
 func TestMemo_Encrypt_Deterministic(t *testing.T) {
 	// Test that same inputs produce same ciphertext (deterministic)
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -96,8 +102,8 @@ func TestMemo_Encrypt_Deterministic(t *testing.T) {
 func TestMemo_Decrypt(t *testing.T) {
 	// Test basic memo decryption
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	originalCommitment := &circuits.Commitment{
@@ -124,8 +130,8 @@ func TestMemo_Decrypt(t *testing.T) {
 func TestMemo_Decrypt_InvalidCiphertext(t *testing.T) {
 	// Test decryption with invalid ciphertext
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	// Invalid ciphertext (wrong length)
@@ -142,48 +148,44 @@ func TestMemo_Decrypt_InvalidCiphertext(t *testing.T) {
 func TestMemo_EncryptDecrypt_RoundTrip(t *testing.T) {
 	// Test complete encrypt-decrypt round trip
 	testCases := []struct {
-		name       string
-		asset      fr.Element
-		amount     fr.Element
-		blinding   fr.Element
-		secretKey  big.Int
-		publicKeyX fr.Element
-		publicKeyY fr.Element
+		name              string
+		asset             fr.Element
+		amount            fr.Element
+		blinding          fr.Element
+		secretKey         big.Int
+		receiverSecretKey big.Int
 	}{
 		{
-			name:       "Small values",
-			asset:      fr.NewElement(1),
-			amount:     fr.NewElement(2),
-			blinding:   fr.NewElement(3),
-			secretKey:  *big.NewInt(11111),
-			publicKeyX: fr.NewElement(22222),
-			publicKeyY: fr.NewElement(33333),
+			name:              "Small values",
+			asset:             fr.NewElement(1),
+			amount:            fr.NewElement(2),
+			blinding:          fr.NewElement(3),
+			secretKey:         *big.NewInt(11111),
+			receiverSecretKey: *big.NewInt(22222),
 		},
 		{
-			name:       "Medium values",
-			asset:      fr.NewElement(12345),
-			amount:     fr.NewElement(67890),
-			blinding:   fr.NewElement(11111),
-			secretKey:  *big.NewInt(44444),
-			publicKeyX: fr.NewElement(55555),
-			publicKeyY: fr.NewElement(66666),
+			name:              "Medium values",
+			asset:             fr.NewElement(12345),
+			amount:            fr.NewElement(67890),
+			blinding:          fr.NewElement(11111),
+			secretKey:         *big.NewInt(44444),
+			receiverSecretKey: *big.NewInt(55555),
 		},
 		{
-			name:       "Large values",
-			asset:      fr.NewElement(0xFFFFFFFFFFFFFFFF),
-			amount:     fr.NewElement(0xEEEEEEEEEEEEEEEE),
-			blinding:   fr.NewElement(0xDDDDDDDDDDDDDDDD),
-			secretKey:  *big.NewInt(0xDDDDDDDDDDDDD), // Using smaller value like in ECDH test
-			publicKeyX: fr.NewElement(0xBBBBBBBBBBBBBBBB),
-			publicKeyY: fr.NewElement(0xAAAAAAAAAAAAAAAA),
+			name:              "Large values",
+			asset:             fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			amount:            fr.NewElement(0xEEEEEEEEEEEEEEEE),
+			blinding:          fr.NewElement(0xDDDDDDDDDDDDDDDD),
+			secretKey:         *big.NewInt(0xDDDDDDDDDDDDD), // Using smaller value like in ECDH test
+			receiverSecretKey: *big.NewInt(0xBBBBBBBBBBBB),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			memo := &circuits.Memo{
-				EphemeralSecretKey: tc.secretKey,
-				ReceiverPublicKey:  twistededwardbn254.PointAffine{X: tc.publicKeyX, Y: tc.publicKeyY},
+				SecretKey: tc.secretKey,
+				PublicKey: buildPublicKey(tc.secretKey),
 			}
 
 			originalCommitment := &circuits.Commitment{
@@ -211,13 +213,13 @@ func TestMemo_EncryptDecrypt_RoundTrip(t *testing.T) {
 func TestMemo_Decrypt_WrongKey(t *testing.T) {
 	// Test decryption with wrong key
 	memo1 := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	memo2 := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(99999), // Different secret key
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(99999), // Different secret key
+		PublicKey: buildPublicKey(*big.NewInt(99999)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -239,48 +241,44 @@ func TestMemo_Decrypt_WrongKey(t *testing.T) {
 func TestMemo_EdgeCases(t *testing.T) {
 	// Test edge cases
 	testCases := []struct {
-		name       string
-		asset      fr.Element
-		amount     fr.Element
-		blinding   fr.Element
-		secretKey  big.Int
-		publicKeyX fr.Element
-		publicKeyY fr.Element
+		name              string
+		asset             fr.Element
+		amount            fr.Element
+		blinding          fr.Element
+		secretKey         big.Int
+		receiverSecretKey big.Int
 	}{
 		{
-			name:       "All zeros",
-			asset:      fr.NewElement(0),
-			amount:     fr.NewElement(0),
-			blinding:   fr.NewElement(0),
-			secretKey:  *big.NewInt(0),
-			publicKeyX: fr.NewElement(0),
-			publicKeyY: fr.NewElement(0),
+			name:              "All zeros",
+			asset:             fr.NewElement(0),
+			amount:            fr.NewElement(0),
+			blinding:          fr.NewElement(0),
+			secretKey:         *big.NewInt(0),
+			receiverSecretKey: *big.NewInt(0),
 		},
 		{
-			name:       "All ones",
-			asset:      fr.NewElement(1),
-			amount:     fr.NewElement(1),
-			blinding:   fr.NewElement(1),
-			secretKey:  *big.NewInt(1),
-			publicKeyX: fr.NewElement(1),
-			publicKeyY: fr.NewElement(1),
+			name:              "All ones",
+			asset:             fr.NewElement(1),
+			amount:            fr.NewElement(1),
+			blinding:          fr.NewElement(1),
+			secretKey:         *big.NewInt(1),
+			receiverSecretKey: *big.NewInt(1),
 		},
 		{
-			name:       "Maximum values",
-			asset:      fr.NewElement(0xFFFFFFFFFFFFFFFF),
-			amount:     fr.NewElement(0xFFFFFFFFFFFFFFFF),
-			blinding:   fr.NewElement(0xFFFFFFFFFFFFFFFF),
-			secretKey:  *big.NewInt(0xDDDDDDDDDDDDD), // Using smaller value like in ECDH test
-			publicKeyX: fr.NewElement(0xFFFFFFFFFFFFFFFF),
-			publicKeyY: fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			name:              "Maximum values",
+			asset:             fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			amount:            fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			blinding:          fr.NewElement(0xFFFFFFFFFFFFFFFF),
+			secretKey:         *big.NewInt(0xDDDDDDDDDDDDD), // Using smaller value like in ECDH test
+			receiverSecretKey: *big.NewInt(0xDDDDDDDDDDDDD),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			memo := &circuits.Memo{
-				EphemeralSecretKey: tc.secretKey,
-				ReceiverPublicKey:  twistededwardbn254.PointAffine{X: tc.publicKeyX, Y: tc.publicKeyY},
+				SecretKey: tc.secretKey,
+				PublicKey: buildPublicKey(tc.receiverSecretKey),
 			}
 
 			commitment := &circuits.Commitment{
@@ -310,8 +308,8 @@ func TestMemo_EdgeCases(t *testing.T) {
 func TestMemo_Consistency(t *testing.T) {
 	// Test consistency across multiple operations
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *big.NewInt(11111),
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *big.NewInt(11111),
+		PublicKey: buildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -358,8 +356,8 @@ func TestMemo_LargeSecretKey(t *testing.T) {
 	largeKey.SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16)
 
 	memo := &circuits.Memo{
-		EphemeralSecretKey: *largeKey,
-		ReceiverPublicKey:  twistededwardbn254.PointAffine{X: fr.NewElement(22222), Y: fr.NewElement(33333)},
+		SecretKey: *largeKey,
+		PublicKey: buildPublicKey(*largeKey),
 	}
 
 	commitment := &circuits.Commitment{
