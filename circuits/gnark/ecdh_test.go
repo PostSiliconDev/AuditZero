@@ -1,7 +1,6 @@
 package circuits_test
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -20,8 +19,6 @@ func TestECDH_Compute(t *testing.T) {
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
 	sharedKey := ecdh.Compute()
-
-	fmt.Println(ecdh.PublicKey.X.Text(10), ecdh.PublicKey.Y.Text(10))
 
 	assert.NotEqual(t, fr.Element{}, sharedKey.X)
 	assert.NotEqual(t, fr.Element{}, sharedKey.Y)

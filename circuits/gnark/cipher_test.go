@@ -102,7 +102,6 @@ func TestStreamCipher_Decrypt_InvalidHMAC(t *testing.T) {
 		Key: [2]fr.Element{key, nonce},
 	}
 
-	// 创建有效的密文
 	plaintext := []fr.Element{
 		fr.NewElement(100),
 		fr.NewElement(200),
@@ -133,6 +132,26 @@ func TestStreamCipher_Decrypt_OddLengthCiphertext(t *testing.T) {
 
 	_, err := cipher.Decrypt(ciphertext)
 	assert.Error(t, err)
+}
+
+func TestStreamCipher_Decrypt_InvalidKey(t *testing.T) {
+	key1 := fr.NewElement(12345)
+	key2 := fr.NewElement(54321)
+	nonce := fr.NewElement(67890)
+
+	cipher1 := &circuits.StreamCipher{Key: [2]fr.Element{key1, nonce}}
+	cipher2 := &circuits.StreamCipher{Key: [2]fr.Element{key2, nonce}}
+
+	ciphertext, err := cipher1.Encrypt([]fr.Element{fr.NewElement(100), fr.NewElement(200), fr.NewElement(300), fr.NewElement(400)})
+	require.NoError(t, err)
+
+	_, err = cipher1.Decrypt(ciphertext)
+	require.NoError(t, err)
+
+	_, err = cipher2.Decrypt(ciphertext)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "HMAC verification failed")
 }
 
 func TestStreamCipher_DifferentKeys(t *testing.T) {

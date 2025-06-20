@@ -9,24 +9,20 @@ import (
 )
 
 type CommitmentGadget struct {
-	api frontend.API
+	Asset    frontend.Variable `gnark:"asset"`
+	Amount   frontend.Variable `gnark:"amount"`
+	Blinding frontend.Variable `gnark:"blinding"`
 }
 
-func NewCommitmentGadget(api frontend.API) *CommitmentGadget {
-	return &CommitmentGadget{
-		api: api,
-	}
-}
-
-func (gadget *CommitmentGadget) Compute(output *OutputGadget) (frontend.Variable, error) {
-	hasher, err := NewPoseidonHasher(gadget.api)
+func (gadget *CommitmentGadget) Compute(api frontend.API) (frontend.Variable, error) {
+	hasher, err := NewPoseidonHasher(api)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
 	}
 
-	hasher.Write(output.Asset)
-	hasher.Write(output.Amount)
-	hasher.Write(output.Blinding)
+	hasher.Write(gadget.Asset)
+	hasher.Write(gadget.Amount)
+	hasher.Write(gadget.Blinding)
 
 	commitment := hasher.Sum()
 
@@ -34,7 +30,7 @@ func (gadget *CommitmentGadget) Compute(output *OutputGadget) (frontend.Variable
 }
 
 type CommitmentCircuit struct {
-	Output     OutputGadget
+	CommitmentGadget
 	Commitment frontend.Variable `gnark:"commitment,public"`
 }
 
@@ -43,9 +39,13 @@ func NewCommitmentCircuit() *CommitmentCircuit {
 }
 
 func (circuit *CommitmentCircuit) Define(api frontend.API) error {
-	gadget := NewCommitmentGadget(api)
+	gadget := CommitmentGadget{
+		Asset:    circuit.Asset,
+		Amount:   circuit.Amount,
+		Blinding: circuit.Blinding,
+	}
 
-	commitment, err := gadget.Compute(&circuit.Output)
+	commitment, err := gadget.Compute(api)
 	if err != nil {
 		return fmt.Errorf("failed to compute commitment: %w", err)
 	}
@@ -82,7 +82,7 @@ func (commitment *Commitment) ToWitness() *CommitmentCircuit {
 	commitment_hash := commitment.Compute()
 
 	return &CommitmentCircuit{
-		Output: OutputGadget{
+		CommitmentGadget: CommitmentGadget{
 			Asset:    commitment.Asset,
 			Amount:   commitment.Amount,
 			Blinding: commitment.Blinding,

@@ -14,7 +14,7 @@ type MemoGadget struct {
 	ReceiverPublicKey  [2]frontend.Variable `gnark:"receiverPublicKey"`
 }
 
-func (gadget *MemoGadget) Generate(api frontend.API, output OutputGadget) (frontend.Variable, error) {
+func (gadget *MemoGadget) Generate(api frontend.API, output CommitmentGadget) (frontend.Variable, error) {
 	ecdh := NewECDHGadget(api)
 
 	sharedKey, err := ecdh.Compute(gadget.ReceiverPublicKey, gadget.EphemeralSecretKey)

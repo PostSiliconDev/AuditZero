@@ -120,9 +120,9 @@ func TestCommitment_ToWitness(t *testing.T) {
 	require.NotNil(t, witness)
 
 	// Verify circuit fields
-	assert.Equal(t, commitment.Asset, witness.Output.Asset)
-	assert.Equal(t, commitment.Amount, witness.Output.Amount)
-	assert.Equal(t, commitment.Blinding, witness.Output.Blinding)
+	assert.Equal(t, commitment.Asset, witness.Asset)
+	assert.Equal(t, commitment.Amount, witness.Amount)
+	assert.Equal(t, commitment.Blinding, witness.Blinding)
 
 	// Verify commitment field should be the computed hash
 	expectedCommitment := commitment.Compute()
@@ -142,14 +142,14 @@ func TestCommitment_ToCircuit_Consistency(t *testing.T) {
 	witness3 := commitment.ToWitness()
 
 	// All conversion results should be the same
-	assert.Equal(t, witness1.Output.Asset, witness2.Output.Asset)
-	assert.Equal(t, witness1.Output.Amount, witness2.Output.Amount)
-	assert.Equal(t, witness1.Output.Blinding, witness2.Output.Blinding)
+	assert.Equal(t, witness1.Asset, witness2.Asset)
+	assert.Equal(t, witness1.Amount, witness2.Amount)
+	assert.Equal(t, witness1.Blinding, witness2.Blinding)
 	assert.Equal(t, witness1.Commitment, witness2.Commitment)
 
-	assert.Equal(t, witness1.Output.Asset, witness3.Output.Asset)
-	assert.Equal(t, witness1.Output.Amount, witness3.Output.Amount)
-	assert.Equal(t, witness1.Output.Blinding, witness3.Output.Blinding)
+	assert.Equal(t, witness1.Asset, witness3.Asset)
+	assert.Equal(t, witness1.Amount, witness3.Amount)
+	assert.Equal(t, witness1.Blinding, witness3.Blinding)
 	assert.Equal(t, witness1.Commitment, witness3.Commitment)
 }
 

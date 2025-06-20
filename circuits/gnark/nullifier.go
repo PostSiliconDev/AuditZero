@@ -9,25 +9,20 @@ import (
 )
 
 type NullifierGadget struct {
-	api frontend.API
+	CommitmentGadget
+	PrivateKey frontend.Variable `gnark:"privateKey"`
 }
 
-func NewNullifierGadget(api frontend.API) *NullifierGadget {
-	return &NullifierGadget{
-		api: api,
-	}
-}
-
-func (gadget *NullifierGadget) Compute(output *OutputGadget, privateKey frontend.Variable) (frontend.Variable, error) {
-	hasher, err := NewPoseidonHasher(gadget.api)
+func (gadget *NullifierGadget) Compute(api frontend.API) (frontend.Variable, error) {
+	hasher, err := NewPoseidonHasher(api)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
 	}
 
-	hasher.Write(output.Asset)
-	hasher.Write(output.Amount)
-	hasher.Write(output.Blinding)
-	hasher.Write(privateKey)
+	hasher.Write(gadget.Asset)
+	hasher.Write(gadget.Amount)
+	hasher.Write(gadget.Blinding)
+	hasher.Write(gadget.PrivateKey)
 
 	nullifier := hasher.Sum()
 
@@ -35,9 +30,8 @@ func (gadget *NullifierGadget) Compute(output *OutputGadget, privateKey frontend
 }
 
 type NullifierCircuit struct {
-	Output     OutputGadget
-	PrivateKey frontend.Variable `gnark:"privateKey"`
-	Nullifier  frontend.Variable `gnark:"nullifier,public"`
+	NullifierGadget
+	Nullifier frontend.Variable `gnark:"nullifier,public"`
 }
 
 func NewNullifierCircuit() *NullifierCircuit {
@@ -45,8 +39,15 @@ func NewNullifierCircuit() *NullifierCircuit {
 }
 
 func (circuit *NullifierCircuit) Define(api frontend.API) error {
-	gadget := NewNullifierGadget(api)
-	nullifier, err := gadget.Compute(&circuit.Output, circuit.PrivateKey)
+	gadget := NullifierGadget{
+		CommitmentGadget: CommitmentGadget{
+			Asset:    circuit.Asset,
+			Amount:   circuit.Amount,
+			Blinding: circuit.Blinding,
+		},
+		PrivateKey: circuit.PrivateKey,
+	}
+	nullifier, err := gadget.Compute(api)
 	if err != nil {
 		return fmt.Errorf("failed to compute nullifier: %w", err)
 	}
@@ -86,13 +87,15 @@ func (nullifier *Nullifier) ToWitness() *NullifierCircuit {
 	nullifier_hash := nullifier.Compute()
 
 	return &NullifierCircuit{
-		Output: OutputGadget{
-			Asset:    nullifier.Asset,
-			Amount:   nullifier.Amount,
-			Blinding: nullifier.Blinding,
+		NullifierGadget: NullifierGadget{
+			CommitmentGadget: CommitmentGadget{
+				Asset:    nullifier.Asset,
+				Amount:   nullifier.Amount,
+				Blinding: nullifier.Blinding,
+			},
+			PrivateKey: nullifier.PrivateKey,
 		},
-		PrivateKey: nullifier.PrivateKey,
-		Nullifier:  nullifier_hash,
+		Nullifier: nullifier_hash,
 	}
 }
 

@@ -146,9 +146,9 @@ func TestNullifier_ToWitness(t *testing.T) {
 	require.NotNil(t, witness)
 
 	// Verify circuit fields
-	assert.Equal(t, nullifier.Asset, witness.Output.Asset)
-	assert.Equal(t, nullifier.Amount, witness.Output.Amount)
-	assert.Equal(t, nullifier.Blinding, witness.Output.Blinding)
+	assert.Equal(t, nullifier.Asset, witness.Asset)
+	assert.Equal(t, nullifier.Amount, witness.Amount)
+	assert.Equal(t, nullifier.Blinding, witness.Blinding)
 	assert.Equal(t, nullifier.PrivateKey, witness.PrivateKey)
 
 	// Verify nullifier field should be the computed hash
@@ -170,15 +170,15 @@ func TestNullifier_ToWitness_Consistency(t *testing.T) {
 	witness3 := nullifier.ToWitness()
 
 	// All conversion results should be the same
-	assert.Equal(t, witness1.Output.Asset, witness2.Output.Asset)
-	assert.Equal(t, witness1.Output.Amount, witness2.Output.Amount)
-	assert.Equal(t, witness1.Output.Blinding, witness2.Output.Blinding)
+	assert.Equal(t, witness1.Asset, witness2.Asset)
+	assert.Equal(t, witness1.Amount, witness2.Amount)
+	assert.Equal(t, witness1.Blinding, witness2.Blinding)
 	assert.Equal(t, witness1.PrivateKey, witness2.PrivateKey)
 	assert.Equal(t, witness1.Nullifier, witness2.Nullifier)
 
-	assert.Equal(t, witness1.Output.Asset, witness3.Output.Asset)
-	assert.Equal(t, witness1.Output.Amount, witness3.Output.Amount)
-	assert.Equal(t, witness1.Output.Blinding, witness3.Output.Blinding)
+	assert.Equal(t, witness1.Asset, witness3.Asset)
+	assert.Equal(t, witness1.Amount, witness3.Amount)
+	assert.Equal(t, witness1.Blinding, witness3.Blinding)
 	assert.Equal(t, witness1.PrivateKey, witness3.PrivateKey)
 	assert.Equal(t, witness1.Nullifier, witness3.Nullifier)
 }

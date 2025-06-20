@@ -29,6 +29,7 @@ func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, plaintext []
 	state := []frontend.Variable{
 		key[0],
 		key[1],
+		frontend.Variable(0),
 	}
 
 	perm.Permutation(state)
@@ -42,6 +43,8 @@ func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, plaintext []
 	for i := 0; i < len(plaintext); i += 2 {
 		state[0] = gadget.api.Add(state[0], plaintext[i])
 		state[1] = gadget.api.Add(state[1], plaintext[i+1])
+
+		perm.Permutation(state)
 
 		ciphertext[i] = state[0]
 		ciphertext[i+1] = state[1]
@@ -89,7 +92,7 @@ func (cipher *StreamCipher) Encrypt(
 ) ([]fr.Element, error) {
 	params := poseidonbn254.GetDefaultParameters()
 
-	hasher := poseidonbn254.NewPermutation(params.Width, params.NbFullRounds, params.NbPartialRounds)
+	hasher := poseidonbn254.NewPermutation(3, params.NbFullRounds, params.NbPartialRounds)
 
 	if len(plaintext)%2 != 0 {
 		return nil, fmt.Errorf("plaintext must have an even number of elements, chipertext must be padding to an even number of elements")
@@ -98,6 +101,7 @@ func (cipher *StreamCipher) Encrypt(
 	state := []fr.Element{
 		cipher.Key[0],
 		cipher.Key[1],
+		fr.NewElement(0),
 	}
 
 	hasher.Permutation(state)
@@ -108,8 +112,10 @@ func (cipher *StreamCipher) Encrypt(
 		ciphertext[i].Add(&state[0], &plaintext[i])
 		ciphertext[i+1].Add(&state[1], &plaintext[i+1])
 
-		state[0] = ciphertext[i]
-		state[1] = ciphertext[i+1]
+		hasher.Permutation(state)
+
+		state[0] = *state[0].Add(&state[0], &plaintext[i])
+		state[1] = *state[1].Add(&state[1], &plaintext[i+1])
 
 		hasher.Permutation(state)
 	}
@@ -125,7 +131,7 @@ func (cipher *StreamCipher) Decrypt(
 ) ([]fr.Element, error) {
 	params := poseidonbn254.GetDefaultParameters()
 
-	hasher := poseidonbn254.NewPermutation(params.Width, params.NbFullRounds, params.NbPartialRounds)
+	hasher := poseidonbn254.NewPermutation(3, params.NbFullRounds, params.NbPartialRounds)
 
 	if len(ciphertext) == 0 {
 		return nil, fmt.Errorf("ciphertext must have at least one element")
@@ -138,6 +144,7 @@ func (cipher *StreamCipher) Decrypt(
 	state := []fr.Element{
 		cipher.Key[0],
 		cipher.Key[1],
+		fr.NewElement(0),
 	}
 
 	hasher.Permutation(state)
@@ -148,8 +155,10 @@ func (cipher *StreamCipher) Decrypt(
 		plaintext[i].Sub(&ciphertext[i], &state[0])
 		plaintext[i+1].Sub(&ciphertext[i+1], &state[1])
 
-		state[0] = ciphertext[i]
-		state[1] = ciphertext[i+1]
+		hasher.Permutation(state)
+
+		state[0] = *state[0].Add(&state[0], &plaintext[i])
+		state[1] = *state[1].Add(&state[1], &plaintext[i+1])
 
 		hasher.Permutation(state)
 	}
