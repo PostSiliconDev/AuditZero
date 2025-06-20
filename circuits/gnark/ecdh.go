@@ -11,22 +11,20 @@ import (
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
 )
 
-type ECDHCircuit struct {
-	PublicKeyX frontend.Variable `gnark:"publicKeyX"`
-	PublicKeyY frontend.Variable `gnark:"publicKeyY"`
-	SecretKey  frontend.Variable `gnark:"secretKey"`
-	SharedKeyX frontend.Variable `gnark:"sharedKeyX,public"`
-	SharedKeyY frontend.Variable `gnark:"sharedKeyY,public"`
+type ECDHGadget struct {
+	api frontend.API
 }
 
-func NewECDHCircuit() *ECDHCircuit {
-	return &ECDHCircuit{}
+func NewECDHGadget(api frontend.API) *ECDHGadget {
+	return &ECDHGadget{
+		api: api,
+	}
 }
 
-func (circuit *ECDHCircuit) Define(api frontend.API) error {
-	te, err := twistededwards.NewEdCurve(api, twistededwardscrypto.BN254)
+func (gadget *ECDHGadget) Compute(publicKey [2]frontend.Variable, secretKey frontend.Variable) ([2]frontend.Variable, error) {
+	te, err := twistededwards.NewEdCurve(gadget.api, twistededwardscrypto.BN254)
 	if err != nil {
-		return fmt.Errorf("failed to create twistededwards curve: %w", err)
+		return [2]frontend.Variable{}, fmt.Errorf("failed to create twistededwards curve: %w", err)
 	}
 
 	params := te.Params()
@@ -36,9 +34,31 @@ func (circuit *ECDHCircuit) Define(api frontend.API) error {
 		Y: params.Base[1],
 	}
 
-	sharedKey := te.ScalarMul(base_point, circuit.SecretKey)
-	api.AssertIsEqual(circuit.SharedKeyX, sharedKey.X)
-	api.AssertIsEqual(circuit.SharedKeyY, sharedKey.Y)
+	sharedKey := te.ScalarMul(base_point, secretKey)
+
+	return [2]frontend.Variable{sharedKey.X, sharedKey.Y}, nil
+}
+
+type ECDHCircuit struct {
+	PublicKey [2]frontend.Variable
+	SecretKey frontend.Variable
+	SharedKey [2]frontend.Variable `gnark:",public"`
+}
+
+func NewECDHCircuit() *ECDHCircuit {
+	return &ECDHCircuit{}
+}
+
+func (circuit *ECDHCircuit) Define(api frontend.API) error {
+	gadget := NewECDHGadget(api)
+
+	sharedKey, err := gadget.Compute(circuit.PublicKey, circuit.SecretKey)
+	if err != nil {
+		return fmt.Errorf("failed to compute shared key: %w", err)
+	}
+
+	api.AssertIsEqual(circuit.SharedKey[0], sharedKey[0])
+	api.AssertIsEqual(circuit.SharedKey[1], sharedKey[1])
 
 	return nil
 }
@@ -71,10 +91,8 @@ func (ecdh *ECDH) ToWitness() *ECDHCircuit {
 	shared_key_x, shared_key_y := ecdh.Compute()
 
 	return &ECDHCircuit{
-		PublicKeyX: ecdh.PublicKey.X,
-		PublicKeyY: ecdh.PublicKey.Y,
-		SecretKey:  ecdh.SecretKey,
-		SharedKeyX: shared_key_x,
-		SharedKeyY: shared_key_y,
+		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
+		SecretKey: ecdh.SecretKey,
+		SharedKey: [2]frontend.Variable{shared_key_x, shared_key_y},
 	}
 }

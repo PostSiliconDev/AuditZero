@@ -8,10 +8,33 @@ import (
 	"github.com/consensys/gnark/frontend"
 )
 
+type CommitmentGadget struct {
+	api frontend.API
+}
+
+func NewCommitmentGadget(api frontend.API) *CommitmentGadget {
+	return &CommitmentGadget{
+		api: api,
+	}
+}
+
+func (gadget *CommitmentGadget) Compute(output *OutputGadget) (frontend.Variable, error) {
+	hasher, err := NewPoseidonHasher(gadget.api)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
+	}
+
+	hasher.Write(output.Asset)
+	hasher.Write(output.Amount)
+	hasher.Write(output.Blinding)
+
+	commitment := hasher.Sum()
+
+	return commitment, nil
+}
+
 type CommitmentCircuit struct {
-	Asset      frontend.Variable `gnark:"asset"`
-	Amount     frontend.Variable `gnark:"amount"`
-	Blinding   frontend.Variable `gnark:"blinding"`
+	Output     OutputGadget
 	Commitment frontend.Variable `gnark:"commitment,public"`
 }
 
@@ -20,16 +43,12 @@ func NewCommitmentCircuit() *CommitmentCircuit {
 }
 
 func (circuit *CommitmentCircuit) Define(api frontend.API) error {
-	hasher, err := NewPoseidonHasher(api)
+	gadget := NewCommitmentGadget(api)
+
+	commitment, err := gadget.Compute(&circuit.Output)
 	if err != nil {
-		return fmt.Errorf("failed to create poseidon hasher: %w", err)
+		return fmt.Errorf("failed to compute commitment: %w", err)
 	}
-
-	hasher.Write(circuit.Asset)
-	hasher.Write(circuit.Amount)
-	hasher.Write(circuit.Blinding)
-
-	commitment := hasher.Sum()
 	api.AssertIsEqual(circuit.Commitment, commitment)
 
 	return nil
@@ -48,10 +67,6 @@ func (commitment *Commitment) Compute() fr.Element {
 	amount_bytes := commitment.Amount.Bytes()
 	blinding_bytes := commitment.Blinding.Bytes()
 
-	fmt.Println("asset_bytes", asset_bytes)
-	fmt.Println("amount_bytes", amount_bytes)
-	fmt.Println("blinding_bytes", blinding_bytes)
-
 	hasher.Write(asset_bytes[:])
 	hasher.Write(amount_bytes[:])
 
@@ -67,9 +82,11 @@ func (commitment *Commitment) ToWitness() *CommitmentCircuit {
 	commitment_hash := commitment.Compute()
 
 	return &CommitmentCircuit{
-		Asset:      commitment.Asset,
-		Amount:     commitment.Amount,
-		Blinding:   commitment.Blinding,
+		Output: OutputGadget{
+			Asset:    commitment.Asset,
+			Amount:   commitment.Amount,
+			Blinding: commitment.Blinding,
+		},
 		Commitment: commitment_hash,
 	}
 }

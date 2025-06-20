@@ -7,6 +7,7 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,14 +88,14 @@ func TestECDH_ToCircuit(t *testing.T) {
 	require.NotNil(t, circuit)
 
 	// Verify circuit fields
-	assert.Equal(t, ecdh.PublicKey.X, circuit.PublicKeyX)
-	assert.Equal(t, ecdh.PublicKey.Y, circuit.PublicKeyY)
+	assert.Equal(t, ecdh.PublicKey.X, circuit.PublicKey[0])
+	assert.Equal(t, ecdh.PublicKey.Y, circuit.PublicKey[1])
 	assert.Equal(t, ecdh.SecretKey, circuit.SecretKey)
 
 	// Verify shared key fields should be the computed values
 	expectedSharedKeyX, expectedSharedKeyY := ecdh.Compute()
-	assert.Equal(t, expectedSharedKeyX, circuit.SharedKeyX)
-	assert.Equal(t, expectedSharedKeyY, circuit.SharedKeyY)
+	assert.Equal(t, expectedSharedKeyX, circuit.SharedKey[0])
+	assert.Equal(t, expectedSharedKeyY, circuit.SharedKey[1])
 }
 
 func TestECDH_ToCircuit_Consistency(t *testing.T) {
@@ -106,17 +107,13 @@ func TestECDH_ToCircuit_Consistency(t *testing.T) {
 	circuit3 := ecdh.ToWitness()
 
 	// All conversion results should be the same
-	assert.Equal(t, circuit1.PublicKeyX, circuit2.PublicKeyX)
-	assert.Equal(t, circuit1.PublicKeyY, circuit2.PublicKeyY)
+	assert.Equal(t, circuit1.PublicKey, circuit2.PublicKey)
 	assert.Equal(t, circuit1.SecretKey, circuit2.SecretKey)
-	assert.Equal(t, circuit1.SharedKeyX, circuit2.SharedKeyX)
-	assert.Equal(t, circuit1.SharedKeyY, circuit2.SharedKeyY)
+	assert.Equal(t, circuit1.SharedKey, circuit2.SharedKey)
 
-	assert.Equal(t, circuit1.PublicKeyX, circuit3.PublicKeyX)
-	assert.Equal(t, circuit1.PublicKeyY, circuit3.PublicKeyY)
+	assert.Equal(t, circuit1.PublicKey, circuit3.PublicKey)
 	assert.Equal(t, circuit1.SecretKey, circuit3.SecretKey)
-	assert.Equal(t, circuit1.SharedKeyX, circuit3.SharedKeyX)
-	assert.Equal(t, circuit1.SharedKeyY, circuit3.SharedKeyY)
+	assert.Equal(t, circuit1.SharedKey, circuit3.SharedKey)
 }
 
 func TestECDH_Circuit_Verification(t *testing.T) {
@@ -147,11 +144,9 @@ func TestECDH_Circuit_InvalidWitness(t *testing.T) {
 
 	// Create invalid witness (wrong shared key values)
 	witness := &circuits.ECDHCircuit{
-		PublicKeyX: ecdh.PublicKey.X,
-		PublicKeyY: ecdh.PublicKey.Y,
-		SecretKey:  ecdh.SecretKey,
-		SharedKeyX: fr.NewElement(99999), // Wrong shared key X
-		SharedKeyY: fr.NewElement(88888), // Wrong shared key Y
+		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
+		SecretKey: ecdh.SecretKey,
+		SharedKey: [2]frontend.Variable{fr.NewElement(99999), fr.NewElement(88888)}, // Wrong shared key X
 	}
 
 	// Verify circuit should fail

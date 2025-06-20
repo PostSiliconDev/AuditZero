@@ -8,10 +8,34 @@ import (
 	"github.com/consensys/gnark/frontend"
 )
 
+type NullifierGadget struct {
+	api frontend.API
+}
+
+func NewNullifierGadget(api frontend.API) *NullifierGadget {
+	return &NullifierGadget{
+		api: api,
+	}
+}
+
+func (gadget *NullifierGadget) Compute(output *OutputGadget, privateKey frontend.Variable) (frontend.Variable, error) {
+	hasher, err := NewPoseidonHasher(gadget.api)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
+	}
+
+	hasher.Write(output.Asset)
+	hasher.Write(output.Amount)
+	hasher.Write(output.Blinding)
+	hasher.Write(privateKey)
+
+	nullifier := hasher.Sum()
+
+	return nullifier, nil
+}
+
 type NullifierCircuit struct {
-	Asset      frontend.Variable `gnark:"asset"`
-	Amount     frontend.Variable `gnark:"amount"`
-	Blinding   frontend.Variable `gnark:"blinding"`
+	Output     OutputGadget
 	PrivateKey frontend.Variable `gnark:"privateKey"`
 	Nullifier  frontend.Variable `gnark:"nullifier,public"`
 }
@@ -21,17 +45,11 @@ func NewNullifierCircuit() *NullifierCircuit {
 }
 
 func (circuit *NullifierCircuit) Define(api frontend.API) error {
-	hasher, err := NewPoseidonHasher(api)
+	gadget := NewNullifierGadget(api)
+	nullifier, err := gadget.Compute(&circuit.Output, circuit.PrivateKey)
 	if err != nil {
-		return fmt.Errorf("failed to create poseidon hasher: %w", err)
+		return fmt.Errorf("failed to compute nullifier: %w", err)
 	}
-
-	hasher.Write(circuit.Asset)
-	hasher.Write(circuit.Amount)
-	hasher.Write(circuit.Blinding)
-	hasher.Write(circuit.PrivateKey)
-
-	nullifier := hasher.Sum()
 	api.AssertIsEqual(circuit.Nullifier, nullifier)
 
 	return nil
@@ -68,9 +86,11 @@ func (nullifier *Nullifier) ToWitness() *NullifierCircuit {
 	nullifier_hash := nullifier.Compute()
 
 	return &NullifierCircuit{
-		Asset:      nullifier.Asset,
-		Amount:     nullifier.Amount,
-		Blinding:   nullifier.Blinding,
+		Output: OutputGadget{
+			Asset:    nullifier.Asset,
+			Amount:   nullifier.Amount,
+			Blinding: nullifier.Blinding,
+		},
 		PrivateKey: nullifier.PrivateKey,
 		Nullifier:  nullifier_hash,
 	}

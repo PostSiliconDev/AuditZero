@@ -9,6 +9,49 @@ import (
 	poseidon "github.com/consensys/gnark/std/permutation/poseidon2"
 )
 
+type StreamCipherGadget struct {
+	api frontend.API
+}
+
+func NewStreamCipherGadget(api frontend.API) *StreamCipherGadget {
+	return &StreamCipherGadget{
+		api: api,
+	}
+}
+
+func (gadget *StreamCipherGadget) Encrypt(key frontend.Variable, nonce frontend.Variable, plaintext []frontend.Variable) ([]frontend.Variable, error) {
+	params := poseidonbn254.GetDefaultParameters()
+	perm, err := poseidon.NewPoseidon2FromParameters(gadget.api, params.Width, params.NbFullRounds, params.NbPartialRounds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create poseidon permutation: %w", err)
+	}
+
+	state := []frontend.Variable{
+		key,
+		nonce,
+	}
+
+	perm.Permutation(state)
+
+	ciphertext := make([]frontend.Variable, len(plaintext)+1)
+
+	if len(plaintext)%2 != 0 {
+		return nil, fmt.Errorf("plaintext must have an even number of elements")
+	}
+
+	for i := 0; i < len(plaintext); i += 2 {
+		state[0] = gadget.api.Add(state[0], plaintext[i])
+		state[1] = gadget.api.Add(state[1], plaintext[i+1])
+
+		ciphertext[i] = state[0]
+		ciphertext[i+1] = state[1]
+
+		perm.Permutation(state)
+	}
+
+	return nil, nil
+}
+
 type StreamCipherCircuit struct {
 	Key        frontend.Variable
 	Nonce      frontend.Variable
@@ -24,38 +67,16 @@ func NewStreamCipherCircuit(plaintext_len int) *StreamCipherCircuit {
 }
 
 func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
-	params := poseidonbn254.GetDefaultParameters()
-	perm, err := poseidon.NewPoseidon2FromParameters(api, params.Width, params.NbFullRounds, params.NbPartialRounds)
+	gadget := NewStreamCipherGadget(api)
+
+	ciphertext, err := gadget.Encrypt(circuit.Key, circuit.Nonce, circuit.Plaintext)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to encrypt: %w", err)
 	}
 
-	state := []frontend.Variable{
-		circuit.Key,
-		circuit.Nonce,
+	for i := 0; i < len(ciphertext); i++ {
+		api.AssertIsEqual(circuit.Ciphertext[i], ciphertext[i])
 	}
-
-	perm.Permutation(state)
-
-	if len(circuit.Plaintext)+1 != len(circuit.Ciphertext) {
-		return fmt.Errorf("ciphertext must greater than plaintext by 1")
-	}
-
-	if len(circuit.Plaintext)%2 != 0 {
-		return fmt.Errorf("plaintext must have an even number of elements")
-	}
-
-	for i := 0; i < len(circuit.Plaintext); i += 2 {
-		state[0] = api.Add(state[0], circuit.Plaintext[i])
-		state[1] = api.Add(state[1], circuit.Plaintext[i+1])
-
-		api.AssertIsEqual(state[0], circuit.Ciphertext[i])
-		api.AssertIsEqual(state[1], circuit.Ciphertext[i+1])
-
-		perm.Permutation(state)
-	}
-
-	api.AssertIsEqual(state[0], circuit.Ciphertext[len(circuit.Ciphertext)-1])
 
 	return nil
 }
