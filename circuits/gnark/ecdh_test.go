@@ -19,14 +19,14 @@ func TestECDH_Compute(t *testing.T) {
 	// Test basic ECDH computation
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	sharedKeyX, sharedKeyY := ecdh.Compute()
+	sharedKey := ecdh.Compute()
 
 	fmt.Println(ecdh.PublicKey.X.Text(10), ecdh.PublicKey.Y.Text(10))
 
-	assert.NotEqual(t, fr.Element{}, sharedKeyX)
-	assert.NotEqual(t, fr.Element{}, sharedKeyY)
-	assert.NotEqual(t, ecdh.PublicKey.X, sharedKeyX)
-	assert.NotEqual(t, ecdh.PublicKey.Y, sharedKeyY)
+	assert.NotEqual(t, fr.Element{}, sharedKey.X)
+	assert.NotEqual(t, fr.Element{}, sharedKey.Y)
+	assert.NotEqual(t, ecdh.PublicKey.X, sharedKey.X)
+	assert.NotEqual(t, ecdh.PublicKey.Y, sharedKey.Y)
 }
 
 func TestECDH_Compute_DifferentSecretKeys(t *testing.T) {
@@ -39,33 +39,33 @@ func TestECDH_Compute_DifferentSecretKeys(t *testing.T) {
 	// Another different secret key
 	ecdh2 := circuits.NewECDH(*big.NewInt(33333), *big.NewInt(44444))
 
-	sharedKeyX0, sharedKeyY0 := base.Compute()
-	sharedKeyX1, sharedKeyY1 := ecdh1.Compute()
-	sharedKeyX2, sharedKeyY2 := ecdh2.Compute()
+	sharedKey0 := base.Compute()
+	sharedKey1 := ecdh1.Compute()
+	sharedKey2 := ecdh2.Compute()
 
 	// All results should be different
-	assert.NotEqual(t, sharedKeyX0, sharedKeyX1)
-	assert.NotEqual(t, sharedKeyY0, sharedKeyY1)
-	assert.NotEqual(t, sharedKeyX0, sharedKeyX2)
-	assert.NotEqual(t, sharedKeyY0, sharedKeyY2)
-	assert.NotEqual(t, sharedKeyX1, sharedKeyX2)
-	assert.NotEqual(t, sharedKeyY1, sharedKeyY2)
+	assert.NotEqual(t, sharedKey0.X, sharedKey1.X)
+	assert.NotEqual(t, sharedKey0.Y, sharedKey1.Y)
+	assert.NotEqual(t, sharedKey0.X, sharedKey2.X)
+	assert.NotEqual(t, sharedKey0.Y, sharedKey2.Y)
+	assert.NotEqual(t, sharedKey1.X, sharedKey2.X)
+	assert.NotEqual(t, sharedKey1.Y, sharedKey2.Y)
 }
 
 func TestECDH_Compute_Deterministic(t *testing.T) {
 	// Test that same inputs produce same shared keys (deterministic)
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	sharedKeyX1, sharedKeyY1 := ecdh.Compute()
-	sharedKeyX2, sharedKeyY2 := ecdh.Compute()
-	sharedKeyX3, sharedKeyY3 := ecdh.Compute()
+	sharedKey1 := ecdh.Compute()
+	sharedKey2 := ecdh.Compute()
+	sharedKey3 := ecdh.Compute()
 
-	assert.Equal(t, sharedKeyX1, sharedKeyX2)
-	assert.Equal(t, sharedKeyY1, sharedKeyY2)
-	assert.Equal(t, sharedKeyX1, sharedKeyX3)
-	assert.Equal(t, sharedKeyY1, sharedKeyY3)
-	assert.Equal(t, sharedKeyX2, sharedKeyX3)
-	assert.Equal(t, sharedKeyY2, sharedKeyY3)
+	assert.Equal(t, sharedKey1.X, sharedKey2.X)
+	assert.Equal(t, sharedKey1.Y, sharedKey2.Y)
+	assert.Equal(t, sharedKey1.X, sharedKey3.X)
+	assert.Equal(t, sharedKey1.Y, sharedKey3.Y)
+	assert.Equal(t, sharedKey2.X, sharedKey3.X)
+	assert.Equal(t, sharedKey2.Y, sharedKey3.Y)
 }
 
 func TestECDH_Compute_LargeSecretKey(t *testing.T) {
@@ -75,9 +75,9 @@ func TestECDH_Compute_LargeSecretKey(t *testing.T) {
 
 	ecdh := circuits.NewECDH(*largeKey, *big.NewInt(22222))
 
-	sharedKeyX, sharedKeyY := ecdh.Compute()
-	assert.NotEqual(t, fr.Element{}, sharedKeyX)
-	assert.NotEqual(t, fr.Element{}, sharedKeyY)
+	sharedKey := ecdh.Compute()
+	assert.NotEqual(t, fr.Element{}, sharedKey.X)
+	assert.NotEqual(t, fr.Element{}, sharedKey.Y)
 }
 
 func TestECDH_ToCircuit(t *testing.T) {
@@ -93,9 +93,9 @@ func TestECDH_ToCircuit(t *testing.T) {
 	assert.Equal(t, ecdh.SecretKey, circuit.SecretKey)
 
 	// Verify shared key fields should be the computed values
-	expectedSharedKeyX, expectedSharedKeyY := ecdh.Compute()
-	assert.Equal(t, expectedSharedKeyX, circuit.SharedKey[0])
-	assert.Equal(t, expectedSharedKeyY, circuit.SharedKey[1])
+	expectedSharedKey := ecdh.Compute()
+	assert.Equal(t, expectedSharedKey.X, circuit.SharedKey[0])
+	assert.Equal(t, expectedSharedKey.Y, circuit.SharedKey[1])
 }
 
 func TestECDH_ToCircuit_Consistency(t *testing.T) {

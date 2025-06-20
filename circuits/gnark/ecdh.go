@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
 	twistededwardscrypto "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
@@ -79,20 +78,20 @@ func NewECDH(receiverSecretKey big.Int, senderSecretKey big.Int) *ECDH {
 	}
 }
 
-func (ecdh *ECDH) Compute() (fr.Element, fr.Element) {
+func (ecdh *ECDH) Compute() twistededwardbn254.PointAffine {
 	base_point := twistededwardbn254.GetEdwardsCurve().Base
 
 	shared_key := base_point.ScalarMultiplication(&base_point, &ecdh.SecretKey)
 
-	return shared_key.X, shared_key.Y
+	return *shared_key
 }
 
 func (ecdh *ECDH) ToWitness() *ECDHCircuit {
-	shared_key_x, shared_key_y := ecdh.Compute()
+	shared_key := ecdh.Compute()
 
 	return &ECDHCircuit{
 		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
 		SecretKey: ecdh.SecretKey,
-		SharedKey: [2]frontend.Variable{shared_key_x, shared_key_y},
+		SharedKey: [2]frontend.Variable{shared_key.X, shared_key.Y},
 	}
 }

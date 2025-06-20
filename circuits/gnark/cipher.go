@@ -19,7 +19,7 @@ func NewStreamCipherGadget(api frontend.API) *StreamCipherGadget {
 	}
 }
 
-func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, nonce [2]frontend.Variable, plaintext []frontend.Variable) ([]frontend.Variable, error) {
+func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, plaintext []frontend.Variable) ([]frontend.Variable, error) {
 	params := poseidonbn254.GetDefaultParameters()
 	perm, err := poseidon.NewPoseidon2FromParameters(gadget.api, params.Width, params.NbFullRounds, params.NbPartialRounds)
 	if err != nil {
@@ -30,11 +30,6 @@ func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, nonce [2]fro
 		key[0],
 		key[1],
 	}
-
-	perm.Permutation(state)
-
-	state[0] = gadget.api.Add(state[0], nonce[0])
-	state[1] = gadget.api.Add(state[1], nonce[1])
 
 	perm.Permutation(state)
 
@@ -58,10 +53,9 @@ func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, nonce [2]fro
 }
 
 type StreamCipherCircuit struct {
-	Key        [2]frontend.Variable
-	Nonce      [2]frontend.Variable
-	Plaintext  []frontend.Variable
-	Ciphertext []frontend.Variable `gnark:",public"`
+	Key        [2]frontend.Variable `gnark:"key"`
+	Plaintext  []frontend.Variable  `gnark:"plaintext"`
+	Ciphertext []frontend.Variable  `gnark:",public"`
 }
 
 func NewStreamCipherCircuit(plaintext_len int) *StreamCipherCircuit {
@@ -74,7 +68,7 @@ func NewStreamCipherCircuit(plaintext_len int) *StreamCipherCircuit {
 func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
 	gadget := NewStreamCipherGadget(api)
 
-	ciphertext, err := gadget.Encrypt(circuit.Key, circuit.Nonce, circuit.Plaintext)
+	ciphertext, err := gadget.Encrypt(circuit.Key, circuit.Plaintext)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt: %w", err)
 	}
@@ -87,8 +81,7 @@ func (circuit *StreamCipherCircuit) Define(api frontend.API) error {
 }
 
 type StreamCipher struct {
-	Key   [2]fr.Element
-	Nonce [2]fr.Element
+	Key [2]fr.Element
 }
 
 func (cipher *StreamCipher) Encrypt(
@@ -106,11 +99,6 @@ func (cipher *StreamCipher) Encrypt(
 		cipher.Key[0],
 		cipher.Key[1],
 	}
-
-	hasher.Permutation(state)
-
-	state[0].Add(&state[0], &cipher.Nonce[0])
-	state[1].Add(&state[1], &cipher.Nonce[1])
 
 	hasher.Permutation(state)
 
@@ -151,11 +139,6 @@ func (cipher *StreamCipher) Decrypt(
 		cipher.Key[0],
 		cipher.Key[1],
 	}
-
-	hasher.Permutation(state)
-
-	state[0].Add(&state[0], &cipher.Nonce[0])
-	state[1].Add(&state[1], &cipher.Nonce[1])
 
 	hasher.Permutation(state)
 
