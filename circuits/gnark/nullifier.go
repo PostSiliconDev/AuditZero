@@ -29,33 +29,6 @@ func (gadget *NullifierGadget) Compute(api frontend.API) (frontend.Variable, err
 	return nullifier, nil
 }
 
-type NullifierCircuit struct {
-	NullifierGadget
-	Nullifier frontend.Variable `gnark:"nullifier,public"`
-}
-
-func NewNullifierCircuit() *NullifierCircuit {
-	return &NullifierCircuit{}
-}
-
-func (circuit *NullifierCircuit) Define(api frontend.API) error {
-	gadget := NullifierGadget{
-		CommitmentGadget: CommitmentGadget{
-			Asset:    circuit.Asset,
-			Amount:   circuit.Amount,
-			Blinding: circuit.Blinding,
-		},
-		PrivateKey: circuit.PrivateKey,
-	}
-	nullifier, err := gadget.Compute(api)
-	if err != nil {
-		return fmt.Errorf("failed to compute nullifier: %w", err)
-	}
-	api.AssertIsEqual(circuit.Nullifier, nullifier)
-
-	return nil
-}
-
 type Nullifier struct {
 	Commitment
 	PrivateKey fr.Element
@@ -86,22 +59,6 @@ func (nullifier *Nullifier) Compute() fr.Element {
 	res.Unmarshal(res_bytes)
 
 	return res
-}
-
-func (nullifier *Nullifier) ToWitness() *NullifierCircuit {
-	nullifier_hash := nullifier.Compute()
-
-	return &NullifierCircuit{
-		NullifierGadget: NullifierGadget{
-			CommitmentGadget: CommitmentGadget{
-				Asset:    nullifier.Asset,
-				Amount:   nullifier.Amount,
-				Blinding: nullifier.Blinding,
-			},
-			PrivateKey: nullifier.PrivateKey,
-		},
-		Nullifier: nullifier_hash,
-	}
 }
 
 func (nullifier *Nullifier) ToCommitment() *Commitment {

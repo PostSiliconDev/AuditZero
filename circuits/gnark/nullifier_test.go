@@ -1,11 +1,13 @@
 package circuits_test
 
 import (
+	"fmt"
 	circuits "hide-pay/circuits/gnark"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -162,7 +164,7 @@ func TestNullifier_ToWitness(t *testing.T) {
 		PrivateKey: fr.NewElement(22222),
 	}
 
-	witness := nullifier.ToWitness()
+	witness := nullifier.ToGadget()
 	require.NotNil(t, witness)
 
 	// Verify circuit fields
@@ -171,9 +173,6 @@ func TestNullifier_ToWitness(t *testing.T) {
 	assert.Equal(t, nullifier.Blinding, witness.Blinding)
 	assert.Equal(t, nullifier.PrivateKey, witness.PrivateKey)
 
-	// Verify nullifier field should be the computed hash
-	expectedNullifier := nullifier.Compute()
-	assert.Equal(t, expectedNullifier, witness.Nullifier)
 }
 
 func TestNullifier_ToWitness_Consistency(t *testing.T) {
@@ -187,22 +186,39 @@ func TestNullifier_ToWitness_Consistency(t *testing.T) {
 		PrivateKey: fr.NewElement(22222),
 	}
 
-	witness1 := nullifier.ToWitness()
-	witness2 := nullifier.ToWitness()
-	witness3 := nullifier.ToWitness()
+	witness1 := nullifier.ToGadget()
+	witness2 := nullifier.ToGadget()
+	witness3 := nullifier.ToGadget()
 
 	// All conversion results should be the same
 	assert.Equal(t, witness1.Asset, witness2.Asset)
 	assert.Equal(t, witness1.Amount, witness2.Amount)
 	assert.Equal(t, witness1.Blinding, witness2.Blinding)
 	assert.Equal(t, witness1.PrivateKey, witness2.PrivateKey)
-	assert.Equal(t, witness1.Nullifier, witness2.Nullifier)
 
 	assert.Equal(t, witness1.Asset, witness3.Asset)
 	assert.Equal(t, witness1.Amount, witness3.Amount)
 	assert.Equal(t, witness1.Blinding, witness3.Blinding)
 	assert.Equal(t, witness1.PrivateKey, witness3.PrivateKey)
-	assert.Equal(t, witness1.Nullifier, witness3.Nullifier)
+}
+
+type NullifierCircuit struct {
+	circuits.NullifierGadget
+	Nullifier frontend.Variable `gnark:"nullifier,public"`
+}
+
+func NewNullifierCircuit() *NullifierCircuit {
+	return &NullifierCircuit{}
+}
+
+func (circuit *NullifierCircuit) Define(api frontend.API) error {
+	nullifier, err := circuit.NullifierGadget.Compute(api)
+	if err != nil {
+		return fmt.Errorf("failed to compute nullifier: %w", err)
+	}
+	api.AssertIsEqual(circuit.Nullifier, nullifier)
+
+	return nil
 }
 
 func TestNullifier_Circuit_Verification(t *testing.T) {
@@ -216,17 +232,21 @@ func TestNullifier_Circuit_Verification(t *testing.T) {
 		PrivateKey: fr.NewElement(22222),
 	}
 
-	circuit := circuits.NewNullifierCircuit()
+	circuit := NewNullifierCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
 	// Create witness
-	witness := nullifier.ToWitness()
+	witness := NullifierCircuit{
+		NullifierGadget: *nullifier.ToGadget(),
+		Nullifier:       nullifier.Compute(),
+	}
 
 	// Verify circuit
+
 	options := test.WithCurves(ecc.BN254)
-	assert.ProverSucceeded(circuit, witness, options)
+	assert.ProverSucceeded(circuit, &witness, options)
 }
 
 func TestNullifier_Circuit_InvalidWitness(t *testing.T) {
@@ -240,18 +260,21 @@ func TestNullifier_Circuit_InvalidWitness(t *testing.T) {
 		PrivateKey: fr.NewElement(22222),
 	}
 
-	circuit := circuits.NewNullifierCircuit()
+	circuit := NewNullifierCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
 	// Create invalid witness (wrong nullifier value)
-	witness := nullifier.ToWitness()
+	witness := NullifierCircuit{
+		NullifierGadget: *nullifier.ToGadget(),
+		Nullifier:       nullifier.Compute(),
+	}
 	witness.Nullifier = fr.NewElement(99999) // Wrong nullifier value
 
 	// Verify circuit should fail
 	options := test.WithCurves(ecc.BN254)
-	assert.ProverFailed(circuit, witness, options)
+	assert.ProverFailed(circuit, &witness, options)
 }
 
 func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
@@ -280,15 +303,18 @@ func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
 				PrivateKey: fr.NewElement(tc.privateKey),
 			}
 
-			circuit := circuits.NewNullifierCircuit()
+			circuit := NewNullifierCircuit()
 			require.NotNil(t, circuit)
 
 			assert := test.NewAssert(t)
 
-			witness := nullifier.ToWitness()
+			witness := NullifierCircuit{
+				NullifierGadget: *nullifier.ToGadget(),
+				Nullifier:       nullifier.Compute(),
+			}
 
 			options := test.WithCurves(ecc.BN254)
-			assert.ProverSucceeded(circuit, witness, options)
+			assert.ProverSucceeded(circuit, &witness, options)
 		})
 	}
 }
@@ -344,15 +370,18 @@ func TestNullifier_Compute_EdgeCases(t *testing.T) {
 			assert.NotEqual(t, fr.Element{}, result)
 
 			// Test circuit verification for edge cases
-			circuit := circuits.NewNullifierCircuit()
+			circuit := NewNullifierCircuit()
 			require.NotNil(t, circuit)
 
 			assert := test.NewAssert(t)
 
-			witness := nullifier.ToWitness()
+			witness := NullifierCircuit{
+				NullifierGadget: *nullifier.ToGadget(),
+				Nullifier:       result,
+			}
 
 			options := test.WithCurves(ecc.BN254)
-			assert.ProverSucceeded(circuit, witness, options)
+			assert.ProverSucceeded(circuit, &witness, options)
 		})
 	}
 }
