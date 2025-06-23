@@ -107,26 +107,37 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 
 type UTXOCircuit struct {
 	UTXOGadget
-	// UTXOResultGadget
+	UTXOResultGadget
 }
 
 func NewUTXOCircuit(nullifierSize int, commitmentSize int) *UTXOCircuit {
 	return &UTXOCircuit{
-		UTXOGadget: *NewUTXOGadget(nullifierSize, commitmentSize),
-		// UTXOResultGadget: *NewUTXOResultGadget(nullifierSize, commitmentSize),
+		UTXOGadget:       *NewUTXOGadget(nullifierSize, commitmentSize),
+		UTXOResultGadget: *NewUTXOResultGadget(nullifierSize, commitmentSize),
 	}
 }
 
 func (circuit *UTXOCircuit) Define(api frontend.API) error {
-	_, err := circuit.UTXOGadget.BuildAndCheck(api)
+	utxoResult, err := circuit.UTXOGadget.BuildAndCheck(api)
 	if err != nil {
 		return fmt.Errorf("failed to build and check UTXO: %w", err)
 	}
 
-	// api.AssertIsEqual(circuit.UTXOResultGadget.Nullifiers, utxoResult.Nullifiers)
-	// api.AssertIsEqual(circuit.UTXOResultGadget.Commitments, utxoResult.Commitments)
-	// api.AssertIsEqual(circuit.UTXOResultGadget.OwnerMemoHashes, utxoResult.OwnerMemoHashes)
-	// api.AssertIsEqual(circuit.UTXOResultGadget.AuditMemoHashes, utxoResult.AuditMemoHashes)
+	for i := range circuit.UTXOResultGadget.Nullifiers {
+		api.AssertIsEqual(circuit.UTXOResultGadget.Nullifiers[i], utxoResult.Nullifiers[i])
+	}
+
+	for i := range circuit.UTXOResultGadget.Commitments {
+		api.AssertIsEqual(circuit.UTXOResultGadget.Commitments[i], utxoResult.Commitments[i])
+	}
+
+	for i := range circuit.UTXOResultGadget.OwnerMemoHashes {
+		api.AssertIsEqual(circuit.UTXOResultGadget.OwnerMemoHashes[i], utxoResult.OwnerMemoHashes[i])
+	}
+
+	for i := range circuit.UTXOResultGadget.AuditMemoHashes {
+		api.AssertIsEqual(circuit.UTXOResultGadget.AuditMemoHashes[i], utxoResult.AuditMemoHashes[i])
+	}
 
 	return nil
 }
@@ -158,6 +169,10 @@ func (utxo *UTXO) ToGadget() *UTXOGadget {
 
 	for i := range utxo.EphemeralReceiverSecretKey {
 		ephemeralReceiverSecretKeys[i] = utxo.EphemeralReceiverSecretKey[i]
+	}
+
+	for i := range utxo.EphemeralAuditSecretKey {
+		ephemeralAuditSecretKeys[i] = utxo.EphemeralAuditSecretKey[i]
 	}
 
 	receiverPublicKey := [2]frontend.Variable{
@@ -207,13 +222,15 @@ func (result *UTXOResult) ToGadget() *UTXOResultGadget {
 
 	for i := range result.Commitments {
 		commitments[i] = result.Commitments[i].Commitment
-		ownerMemoHashes[i] = result.Commitments[i].OwnerMemo
-		auditMemoHashes[i] = result.Commitments[i].AuditMemo
+		ownerMemoHashes[i] = result.Commitments[i].OwnerHMAC
+		auditMemoHashes[i] = result.Commitments[i].AuditHMAC
 	}
 
 	return &UTXOResultGadget{
-		Nullifiers:  nullifiers,
-		Commitments: commitments,
+		Nullifiers:      nullifiers,
+		Commitments:     commitments,
+		OwnerMemoHashes: ownerMemoHashes,
+		AuditMemoHashes: auditMemoHashes,
 	}
 }
 

@@ -14,9 +14,6 @@ type StreamCipherGadget struct {
 }
 
 func (gadget *StreamCipherGadget) Encrypt(api frontend.API, ad []frontend.Variable, plaintext []frontend.Variable) (frontend.Variable, error) {
-	api.Println("ad", ad)
-	api.Println("plaintext", plaintext)
-
 	params := poseidonbn254.GetDefaultParameters()
 	perm, err := poseidon.NewPoseidon2FromParameters(api, 2, params.NbFullRounds, params.NbPartialRounds)
 	if err != nil {
@@ -35,12 +32,12 @@ func (gadget *StreamCipherGadget) Encrypt(api frontend.API, ad []frontend.Variab
 	state[0] = gadget.Key[1]
 	perm.Permutation(state)
 
-	for i := 0; i < len(ad); i++ {
+	for i := range ad {
 		state[0] = api.Add(state[0], ad[i])
 		perm.Permutation(state)
 	}
 
-	for i := 0; i < len(plaintext); i++ {
+	for i := range plaintext {
 		perm.Permutation(state)
 
 		state[0] = api.Add(state[0], plaintext[i])
@@ -79,14 +76,14 @@ func (cipher *StreamCipher) Encrypt(
 	state[0] = cipher.Key[1]
 	hasher.Permutation(state)
 
-	for i := 0; i < len(ad); i++ {
+	for i := range ad {
 		state[0].Add(&state[0], &ad[i])
 		hasher.Permutation(state)
 	}
 
 	ciphertext := make([]fr.Element, len(plaintext)+1)
 
-	for i := 0; i < len(plaintext); i++ {
+	for i := range plaintext {
 		ciphertext[i].Add(&state[0], &plaintext[i])
 		hasher.Permutation(state)
 
@@ -123,7 +120,7 @@ func (cipher *StreamCipher) Decrypt(
 	state[0] = cipher.Key[1]
 	hasher.Permutation(state)
 
-	for i := 0; i < len(ad); i++ {
+	for i := range ad {
 		state[0].Add(&state[0], &ad[i])
 		hasher.Permutation(state)
 	}

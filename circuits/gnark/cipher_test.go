@@ -43,7 +43,7 @@ func TestStreamCipher_EncryptDecrypt(t *testing.T) {
 	assert.NotNil(t, decrypted)
 	assert.Equal(t, len(plaintext), len(decrypted))
 
-	for i := 0; i < len(plaintext); i++ {
+	for i := range plaintext {
 		assert.Equal(t, plaintext[i], decrypted[i])
 	}
 }
@@ -229,12 +229,12 @@ func TestStreamCipher_ToCircuit(t *testing.T) {
 	assert := test.NewAssert(t)
 
 	ad_witness := make([]frontend.Variable, len(ad))
-	for i := 0; i < len(ad); i++ {
+	for i := range ad {
 		ad_witness[i] = ad[i]
 	}
 
 	plaintext_witness := make([]frontend.Variable, len(plaintext))
-	for i := 0; i < len(plaintext); i++ {
+	for i := range plaintext {
 		plaintext_witness[i] = plaintext[i]
 	}
 

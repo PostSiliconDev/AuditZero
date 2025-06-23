@@ -57,7 +57,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	result, err := utxo.BuildAndCheck()
 	require.NoError(t, err)
 
-	for i := 0; i < len(result.Commitments); i++ {
+	for i := range result.Commitments {
 		commitment := result.Commitments[i]
 
 		memo1 := circuits.Memo{
@@ -141,20 +141,20 @@ func TestUTXO_ToGadget(t *testing.T) {
 		AuditPublicKey:    auditPublicKey,
 	}
 
-	_, err := utxo.BuildAndCheck()
+	result, err := utxo.BuildAndCheck()
 	require.NoError(t, err)
 
 	utxoGadget := utxo.ToGadget()
-	// resultGadget := result.ToGadget()
+	resultGadget := result.ToGadget()
 
-	witness := &circuits.UTXOCircuit{
-		UTXOGadget: *utxoGadget,
-		// UTXOResultGadget: *resultGadget,
+	witness := circuits.UTXOCircuit{
+		UTXOGadget:       *utxoGadget,
+		UTXOResultGadget: *resultGadget,
 	}
 
 	utxoCircuit := circuits.NewUTXOCircuit(len(utxo.Nullifier), len(utxo.Commitment))
 
 	assert := test.NewAssert(t)
 
-	assert.ProverSucceeded(utxoCircuit, witness, test.WithCurves(ecc.BN254))
+	assert.ProverSucceeded(utxoCircuit, &witness, test.WithCurves(ecc.BN254))
 }
