@@ -96,4 +96,63 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	}
 }
 
-func TestUTXO_ToGadget(t *testing.T) {}
+// func TestUTXO_ToGadget(t *testing.T) {
+// 	receiverSecretKey := big.NewInt(11111)
+// 	auditSecretKey := big.NewInt(22222)
+
+// 	receiverPublicKey := buildPublicKey(*receiverSecretKey)
+// 	auditPublicKey := buildPublicKey(*auditSecretKey)
+
+// 	utxo := &circuits.UTXO{
+// 		Nullifier: []circuits.Nullifier{
+// 			{
+// 				Commitment: circuits.Commitment{
+// 					Asset:    fr.NewElement(1),
+// 					Amount:   fr.NewElement(2),
+// 					Blinding: fr.NewElement(3),
+// 				},
+// 				PrivateKey: fr.NewElement(1),
+// 			},
+// 			{
+// 				Commitment: circuits.Commitment{
+// 					Asset:    fr.NewElement(1),
+// 					Amount:   fr.NewElement(2),
+// 					Blinding: fr.NewElement(4),
+// 				},
+// 				PrivateKey: fr.NewElement(2),
+// 			},
+// 		},
+// 		Commitment: []circuits.Commitment{
+// 			{
+// 				Asset:    fr.NewElement(1),
+// 				Amount:   fr.NewElement(2),
+// 				Blinding: fr.NewElement(3),
+// 			},
+// 		},
+// 		EphemeralReceiverSecretKey: []big.Int{
+// 			*big.NewInt(1),
+// 		},
+// 		EphemeralAuditSecretKey: []big.Int{
+// 			*big.NewInt(2),
+// 		},
+// 		ReceiverPublicKey: receiverPublicKey,
+// 		AuditPublicKey:    auditPublicKey,
+// 	}
+
+// 	result, err := utxo.BuildAndCheck()
+// 	require.NoError(t, err)
+
+// 	utxoGadget := utxo.ToGadget()
+// 	resultGadget := result.ToGadget()
+
+// 	witness := &circuits.UTXOCircuit{
+// 		UTXOGadget:       *utxoGadget,
+// 		UTXOResultGadget: *resultGadget,
+// 	}
+
+// 	assert := test.NewAssert(t)
+
+// 	var utxoCircuit circuits.UTXOCircuit
+
+// 	assert.ProverSucceeded(&utxoCircuit, witness, test.WithCurves(ecc.BN254))
+// }

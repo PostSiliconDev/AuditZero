@@ -20,10 +20,10 @@ type UTXOGadget struct {
 }
 
 type UTXOResultGadget struct {
-	Nullifiers      []frontend.Variable `gnark:"nullifier"`
-	Commitments     []frontend.Variable `gnark:"commitment"`
-	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemo"`
-	AuditMemoHashes []frontend.Variable `gnark:"auditMemo"`
+	Nullifiers      []frontend.Variable `gnark:"nullifiers,public"`
+	Commitments     []frontend.Variable `gnark:"commitments,public"`
+	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
+	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
 }
 
 func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, error) {
@@ -84,6 +84,25 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		OwnerMemoHashes: ownerMemoHashes,
 		AuditMemoHashes: auditMemoHashes,
 	}, nil
+}
+
+type UTXOCircuit struct {
+	UTXOGadget
+	UTXOResultGadget
+}
+
+func (circuit *UTXOCircuit) Define(api frontend.API) error {
+	utxoResult, err := circuit.UTXOGadget.BuildAndCheck(api)
+	if err != nil {
+		return fmt.Errorf("failed to build and check UTXO: %w", err)
+	}
+
+	api.AssertIsEqual(circuit.UTXOResultGadget.Nullifiers, utxoResult.Nullifiers)
+	api.AssertIsEqual(circuit.UTXOResultGadget.Commitments, utxoResult.Commitments)
+	api.AssertIsEqual(circuit.UTXOResultGadget.OwnerMemoHashes, utxoResult.OwnerMemoHashes)
+	api.AssertIsEqual(circuit.UTXOResultGadget.AuditMemoHashes, utxoResult.AuditMemoHashes)
+
+	return nil
 }
 
 type UTXO struct {

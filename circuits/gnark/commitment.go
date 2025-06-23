@@ -29,31 +29,6 @@ func (gadget *CommitmentGadget) Compute(api frontend.API) (frontend.Variable, er
 	return commitment, nil
 }
 
-type CommitmentCircuit struct {
-	CommitmentGadget
-	Commitment frontend.Variable `gnark:"commitment,public"`
-}
-
-func NewCommitmentCircuit() *CommitmentCircuit {
-	return &CommitmentCircuit{}
-}
-
-func (circuit *CommitmentCircuit) Define(api frontend.API) error {
-	gadget := CommitmentGadget{
-		Asset:    circuit.Asset,
-		Amount:   circuit.Amount,
-		Blinding: circuit.Blinding,
-	}
-
-	commitment, err := gadget.Compute(api)
-	if err != nil {
-		return fmt.Errorf("failed to compute commitment: %w", err)
-	}
-	api.AssertIsEqual(circuit.Commitment, commitment)
-
-	return nil
-}
-
 type Commitment struct {
 	Asset    fr.Element
 	Amount   fr.Element
@@ -88,17 +63,4 @@ func (commitment *Commitment) Compute() fr.Element {
 	res.Unmarshal(res_bytes)
 
 	return res
-}
-
-func (commitment *Commitment) ToWitness() *CommitmentCircuit {
-	commitment_hash := commitment.Compute()
-
-	return &CommitmentCircuit{
-		CommitmentGadget: CommitmentGadget{
-			Asset:    commitment.Asset,
-			Amount:   commitment.Amount,
-			Blinding: commitment.Blinding,
-		},
-		Commitment: commitment_hash,
-	}
 }
