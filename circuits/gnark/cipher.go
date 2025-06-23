@@ -10,18 +10,15 @@ import (
 )
 
 type StreamCipherGadget struct {
-	api frontend.API
+	Key [2]frontend.Variable
 }
 
-func NewStreamCipherGadget(api frontend.API) *StreamCipherGadget {
-	return &StreamCipherGadget{
-		api: api,
-	}
-}
+func (gadget *StreamCipherGadget) Encrypt(api frontend.API, ad []frontend.Variable, plaintext []frontend.Variable) (frontend.Variable, error) {
+	api.Println("ad", ad)
+	api.Println("plaintext", plaintext)
 
-func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, ad []frontend.Variable, plaintext []frontend.Variable) (frontend.Variable, error) {
 	params := poseidonbn254.GetDefaultParameters()
-	perm, err := poseidon.NewPoseidon2FromParameters(gadget.api, 2, params.NbFullRounds, params.NbPartialRounds)
+	perm, err := poseidon.NewPoseidon2FromParameters(api, 2, params.NbFullRounds, params.NbPartialRounds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create poseidon permutation: %w", err)
 	}
@@ -32,21 +29,21 @@ func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, ad []fronten
 
 	perm.Permutation(state)
 
-	state[0] = key[0]
+	state[0] = gadget.Key[0]
 	perm.Permutation(state)
 
-	state[0] = key[1]
+	state[0] = gadget.Key[1]
 	perm.Permutation(state)
 
 	for i := 0; i < len(ad); i++ {
-		state[0] = gadget.api.Add(state[0], ad[i])
+		state[0] = api.Add(state[0], ad[i])
 		perm.Permutation(state)
 	}
 
 	for i := 0; i < len(plaintext); i++ {
 		perm.Permutation(state)
 
-		state[0] = gadget.api.Add(state[0], plaintext[i])
+		state[0] = api.Add(state[0], plaintext[i])
 		perm.Permutation(state)
 	}
 
@@ -55,6 +52,12 @@ func (gadget *StreamCipherGadget) Encrypt(key [2]frontend.Variable, ad []fronten
 
 type StreamCipher struct {
 	Key [2]fr.Element
+}
+
+func (cipher *StreamCipher) ToGadget() *StreamCipherGadget {
+	return &StreamCipherGadget{
+		Key: [2]frontend.Variable{cipher.Key[0], cipher.Key[1]},
+	}
 }
 
 func (cipher *StreamCipher) Encrypt(

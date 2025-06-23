@@ -1,6 +1,7 @@
 package circuits_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -77,70 +78,94 @@ func TestECDH_Compute_LargeSecretKey(t *testing.T) {
 	assert.NotEqual(t, fr.Element{}, sharedKey.Y)
 }
 
+type ECDHCircuit struct {
+	PublicKey [2]frontend.Variable
+	SecretKey frontend.Variable
+	SharedKey [2]frontend.Variable `gnark:",public"`
+}
+
+func NewECDHCircuit() *ECDHCircuit {
+	return &ECDHCircuit{}
+}
+
+func (circuit *ECDHCircuit) Define(api frontend.API) error {
+	gadget := circuits.ECDHGadget{
+		PublicKey: circuit.PublicKey,
+		SecretKey: circuit.SecretKey,
+	}
+
+	sharedKey, err := gadget.Compute(api)
+	if err != nil {
+		return fmt.Errorf("failed to compute shared key: %w", err)
+	}
+
+	api.AssertIsEqual(circuit.SharedKey[0], sharedKey[0])
+	api.AssertIsEqual(circuit.SharedKey[1], sharedKey[1])
+
+	return nil
+}
+
 func TestECDH_ToCircuit(t *testing.T) {
 	// Test conversion to circuit
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	circuit := ecdh.ToWitness()
+	circuit := ecdh.ToGadget()
 	require.NotNil(t, circuit)
 
 	// Verify circuit fields
 	assert.Equal(t, ecdh.PublicKey.X, circuit.PublicKey[0])
 	assert.Equal(t, ecdh.PublicKey.Y, circuit.PublicKey[1])
 	assert.Equal(t, ecdh.SecretKey, circuit.SecretKey)
-
-	// Verify shared key fields should be the computed values
-	expectedSharedKey := ecdh.Compute()
-	assert.Equal(t, expectedSharedKey.X, circuit.SharedKey[0])
-	assert.Equal(t, expectedSharedKey.Y, circuit.SharedKey[1])
 }
 
 func TestECDH_ToCircuit_Consistency(t *testing.T) {
 	// Test consistency of multiple conversions
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	circuit1 := ecdh.ToWitness()
-	circuit2 := ecdh.ToWitness()
-	circuit3 := ecdh.ToWitness()
+	circuit1 := ecdh.ToGadget()
+	circuit2 := ecdh.ToGadget()
+	circuit3 := ecdh.ToGadget()
 
 	// All conversion results should be the same
 	assert.Equal(t, circuit1.PublicKey, circuit2.PublicKey)
 	assert.Equal(t, circuit1.SecretKey, circuit2.SecretKey)
-	assert.Equal(t, circuit1.SharedKey, circuit2.SharedKey)
 
 	assert.Equal(t, circuit1.PublicKey, circuit3.PublicKey)
 	assert.Equal(t, circuit1.SecretKey, circuit3.SecretKey)
-	assert.Equal(t, circuit1.SharedKey, circuit3.SharedKey)
 }
 
 func TestECDH_Circuit_Verification(t *testing.T) {
 	// Test ECDH circuit verification
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	circuit := circuits.NewECDHCircuit()
+	circuit := NewECDHCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
 	// Create witness
-	witness := ecdh.ToWitness()
+	witness := ECDHCircuit{
+		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
+		SecretKey: ecdh.SecretKey,
+		SharedKey: [2]frontend.Variable{ecdh.Compute().X, ecdh.Compute().Y},
+	}
 
 	// Verify circuit
 	options := test.WithCurves(ecc.BN254)
-	assert.ProverSucceeded(circuit, witness, options)
+	assert.ProverSucceeded(circuit, &witness, options)
 }
 
 func TestECDH_Circuit_InvalidWitness(t *testing.T) {
 	// Test circuit verification with invalid witness
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
-	circuit := circuits.NewECDHCircuit()
+	circuit := NewECDHCircuit()
 	require.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
 	// Create invalid witness (wrong shared key values)
-	witness := &circuits.ECDHCircuit{
+	witness := &ECDHCircuit{
 		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
 		SecretKey: ecdh.SecretKey,
 		SharedKey: [2]frontend.Variable{fr.NewElement(99999), fr.NewElement(88888)}, // Wrong shared key X
@@ -185,15 +210,19 @@ func TestECDH_Circuit_DifferentInputs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ecdh := circuits.NewECDH(tc.secretKey, tc.secretKey)
 
-			circuit := circuits.NewECDHCircuit()
+			circuit := NewECDHCircuit()
 			require.NotNil(t, circuit)
 
 			// Create witness
-			witness := ecdh.ToWitness()
+			witness := ECDHCircuit{
+				PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
+				SecretKey: ecdh.SecretKey,
+				SharedKey: [2]frontend.Variable{ecdh.Compute().X, ecdh.Compute().Y},
+			}
 
 			// Verify circuit
 			options := test.WithCurves(ecc.BN254)
-			assert.ProverSucceeded(circuit, witness, options)
+			assert.ProverSucceeded(circuit, &witness, options)
 		})
 	}
 }

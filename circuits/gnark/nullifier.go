@@ -34,6 +34,10 @@ type Nullifier struct {
 	PrivateKey fr.Element
 }
 
+func (nullifier *Nullifier) ToString() string {
+	return fmt.Sprintf("%s%s%s%s", nullifier.Asset.Text(10), nullifier.Amount.Text(10), nullifier.Blinding.Text(10), nullifier.PrivateKey.Text(10))
+}
+
 func (nullifier *Nullifier) ToGadget() *NullifierGadget {
 	return &NullifierGadget{
 		CommitmentGadget: *nullifier.Commitment.ToGadget(),

@@ -1,11 +1,15 @@
 package circuits_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
+	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -414,4 +418,77 @@ func TestMemo_Exchange_Encrypt_Decrypt(t *testing.T) {
 	assert.Equal(t, commitment.Asset, decryptedCommitment.Asset)
 	assert.Equal(t, commitment.Amount, decryptedCommitment.Amount)
 	assert.Equal(t, commitment.Blinding, decryptedCommitment.Blinding)
+}
+
+type MemoCircuit struct {
+	SecretKey  frontend.Variable
+	PublicKey  [2]frontend.Variable
+	Commitment circuits.CommitmentGadget
+
+	OwnerMemoHash frontend.Variable
+	AuditMemoHash frontend.Variable
+}
+
+func (circuit *MemoCircuit) Define(api frontend.API) error {
+	gadget := circuits.MemoGadget{
+		EphemeralSecretKey: circuit.SecretKey,
+		ReceiverPublicKey:  circuit.PublicKey,
+	}
+
+	ownerMemo, err := gadget.Generate(api, circuit.Commitment)
+	if err != nil {
+		return fmt.Errorf("failed to generate commitment: %w", err)
+	}
+
+	api.AssertIsEqual(circuit.OwnerMemoHash, ownerMemo)
+
+	auditMemo, err := gadget.Generate(api, circuit.Commitment)
+	if err != nil {
+		return fmt.Errorf("failed to generate commitment: %w", err)
+	}
+
+	api.AssertIsEqual(circuit.AuditMemoHash, auditMemo)
+
+	return nil
+}
+
+func TestMemo_ToCircuit(t *testing.T) {
+	secretKey := big.NewInt(11111)
+	receiverSecretKey := big.NewInt(22222)
+	receiverPublicKey := buildPublicKey(*receiverSecretKey)
+
+	memo := &circuits.Memo{
+		SecretKey: *secretKey,
+		PublicKey: receiverPublicKey,
+	}
+
+	commitment := &circuits.Commitment{
+		Asset:    fr.NewElement(12345),
+		Amount:   fr.NewElement(67890),
+		Blinding: fr.NewElement(11111),
+	}
+
+	_, ownerMemo, err := memo.Encrypt(*commitment)
+	require.NoError(t, err)
+
+	_, auditMemo, err := memo.Encrypt(*commitment)
+	require.NoError(t, err)
+
+	circuit := MemoCircuit{}
+
+	witness := MemoCircuit{
+		SecretKey: *secretKey,
+		PublicKey: [2]frontend.Variable{receiverPublicKey.X, receiverPublicKey.Y},
+		Commitment: circuits.CommitmentGadget{
+			Asset:    commitment.Asset,
+			Amount:   commitment.Amount,
+			Blinding: commitment.Blinding,
+		},
+		OwnerMemoHash: ownerMemo[len(ownerMemo)-1],
+		AuditMemoHash: auditMemo[len(auditMemo)-1],
+	}
+
+	assert := test.NewAssert(t)
+
+	assert.ProverSucceeded(&circuit, &witness, test.WithCurves(ecc.BN254))
 }

@@ -17,14 +17,19 @@ type MemoGadget struct {
 }
 
 func (gadget *MemoGadget) Generate(api frontend.API, output CommitmentGadget) (frontend.Variable, error) {
-	ecdh := NewECDHGadget(api)
+	ecdh := ECDHGadget{
+		PublicKey: gadget.ReceiverPublicKey,
+		SecretKey: gadget.EphemeralSecretKey,
+	}
 
-	sharedKey, err := ecdh.Compute(gadget.ReceiverPublicKey, gadget.EphemeralSecretKey)
+	sharedKey, err := ecdh.Compute(api)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compute shared key: %w", err)
 	}
 
-	streamCipher := NewStreamCipherGadget(api)
+	streamCipher := StreamCipherGadget{
+		Key: sharedKey,
+	}
 
 	plaintext := []frontend.Variable{
 		output.Asset,
@@ -50,7 +55,7 @@ func (gadget *MemoGadget) Generate(api frontend.API, output CommitmentGadget) (f
 		ephemeralPublicKey.Y,
 	}
 
-	ciphertext, err := streamCipher.Encrypt(sharedKey, ad, plaintext)
+	ciphertext, err := streamCipher.Encrypt(api, ad, plaintext)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt: %w", err)
 	}
@@ -61,6 +66,13 @@ func (gadget *MemoGadget) Generate(api frontend.API, output CommitmentGadget) (f
 type Memo struct {
 	SecretKey big.Int
 	PublicKey twistededwardbn254.PointAffine
+}
+
+func (memo *Memo) ToGadget() *MemoGadget {
+	return &MemoGadget{
+		EphemeralSecretKey: memo.SecretKey,
+		ReceiverPublicKey:  [2]frontend.Variable{memo.PublicKey.X, memo.PublicKey.Y},
+	}
 }
 
 func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffine, []fr.Element, error) {

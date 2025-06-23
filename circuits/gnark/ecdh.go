@@ -11,53 +11,24 @@ import (
 )
 
 type ECDHGadget struct {
-	api frontend.API
+	PublicKey [2]frontend.Variable
+	SecretKey frontend.Variable
 }
 
-func NewECDHGadget(api frontend.API) *ECDHGadget {
-	return &ECDHGadget{
-		api: api,
-	}
-}
-
-func (gadget *ECDHGadget) Compute(publicKey [2]frontend.Variable, secretKey frontend.Variable) ([2]frontend.Variable, error) {
-	te, err := twistededwards.NewEdCurve(gadget.api, twistededwardscrypto.BN254)
+func (gadget *ECDHGadget) Compute(api frontend.API) ([2]frontend.Variable, error) {
+	te, err := twistededwards.NewEdCurve(api, twistededwardscrypto.BN254)
 	if err != nil {
 		return [2]frontend.Variable{}, fmt.Errorf("failed to create twistededwards curve: %w", err)
 	}
 
 	publicPoint := twistededwards.Point{
-		X: publicKey[0],
-		Y: publicKey[1],
+		X: gadget.PublicKey[0],
+		Y: gadget.PublicKey[1],
 	}
 
-	sharedKey := te.ScalarMul(publicPoint, secretKey)
+	sharedKey := te.ScalarMul(publicPoint, gadget.SecretKey)
 
 	return [2]frontend.Variable{sharedKey.X, sharedKey.Y}, nil
-}
-
-type ECDHCircuit struct {
-	PublicKey [2]frontend.Variable
-	SecretKey frontend.Variable
-	SharedKey [2]frontend.Variable `gnark:",public"`
-}
-
-func NewECDHCircuit() *ECDHCircuit {
-	return &ECDHCircuit{}
-}
-
-func (circuit *ECDHCircuit) Define(api frontend.API) error {
-	gadget := NewECDHGadget(api)
-
-	sharedKey, err := gadget.Compute(circuit.PublicKey, circuit.SecretKey)
-	if err != nil {
-		return fmt.Errorf("failed to compute shared key: %w", err)
-	}
-
-	api.AssertIsEqual(circuit.SharedKey[0], sharedKey[0])
-	api.AssertIsEqual(circuit.SharedKey[1], sharedKey[1])
-
-	return nil
 }
 
 type ECDH struct {
@@ -83,12 +54,9 @@ func (ecdh *ECDH) Compute() twistededwardbn254.PointAffine {
 	return sharedKey
 }
 
-func (ecdh *ECDH) ToWitness() *ECDHCircuit {
-	shared_key := ecdh.Compute()
-
-	return &ECDHCircuit{
+func (ecdh *ECDH) ToGadget() *ECDHGadget {
+	return &ECDHGadget{
 		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
 		SecretKey: ecdh.SecretKey,
-		SharedKey: [2]frontend.Variable{shared_key.X, shared_key.Y},
 	}
 }
