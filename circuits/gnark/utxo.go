@@ -250,7 +250,6 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 	}
 
 	for i := range utxo.Commitment {
-
 		commitment := utxo.Commitment[i].Compute()
 
 		ownerMemo := Memo{

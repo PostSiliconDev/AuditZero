@@ -43,12 +43,19 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 				Amount:   fr.NewElement(2),
 				Blinding: fr.NewElement(3),
 			},
+			{
+				Asset:    fr.NewElement(1),
+				Amount:   fr.NewElement(2),
+				Blinding: fr.NewElement(3),
+			},
 		},
 		EphemeralReceiverSecretKey: []big.Int{
 			*big.NewInt(1),
+			*big.NewInt(2),
 		},
 		EphemeralAuditSecretKey: []big.Int{
-			*big.NewInt(2),
+			*big.NewInt(3),
+			*big.NewInt(4),
 		},
 		ReceiverPublicKey: receiverPublicKey,
 		AuditPublicKey:    auditPublicKey,
@@ -128,14 +135,21 @@ func TestUTXO_ToGadget(t *testing.T) {
 			{
 				Asset:    fr.NewElement(1),
 				Amount:   fr.NewElement(2),
-				Blinding: fr.NewElement(3),
+				Blinding: fr.NewElement(5),
+			},
+			{
+				Asset:    fr.NewElement(1),
+				Amount:   fr.NewElement(2),
+				Blinding: fr.NewElement(6),
 			},
 		},
 		EphemeralReceiverSecretKey: []big.Int{
 			*big.NewInt(1),
+			*big.NewInt(2),
 		},
 		EphemeralAuditSecretKey: []big.Int{
-			*big.NewInt(2),
+			*big.NewInt(3),
+			*big.NewInt(4),
 		},
 		ReceiverPublicKey: receiverPublicKey,
 		AuditPublicKey:    auditPublicKey,
