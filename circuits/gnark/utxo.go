@@ -3,13 +3,17 @@ package circuits
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/std/rangecheck"
 )
 
 type UTXOGadget struct {
+	AllAsset []frontend.Variable `gnark:"allAsset"`
+
 	Nullifier                  []NullifierGadget   `gnark:"nullifier"`
 	Commitment                 []CommitmentGadget  `gnark:"commitment"`
 	EphemeralReceiverSecretKey []frontend.Variable `gnark:"ephemeralReceiverSecretKey"`
@@ -19,8 +23,10 @@ type UTXOGadget struct {
 	AuditPublicKey    [2]frontend.Variable `gnark:"auditPublicKey"`
 }
 
-func NewUTXOGadget(nullifierSize int, commitmentSize int) *UTXOGadget {
+func NewUTXOGadget(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOGadget {
 	return &UTXOGadget{
+		AllAsset: make([]frontend.Variable, allAssetSize),
+
 		Nullifier:                  make([]NullifierGadget, nullifierSize),
 		Commitment:                 make([]CommitmentGadget, commitmentSize),
 		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
@@ -54,10 +60,25 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		return nil, fmt.Errorf("number of nullifiers, commitments, and ephemeral receiver and audit secret keys must be the same")
 	}
 
-	// Check balance of left and right side of the UTXO
+	inputAmounts := make([]frontend.Variable, len(gadget.AllAsset))
+
+	for i := range gadget.AllAsset {
+		inputAmounts[i] = 0
+	}
 
 	for i := range gadget.Nullifier {
-		nullifier, err := gadget.Nullifier[i].Compute(api)
+		gadgetNullifier := gadget.Nullifier[i]
+
+		rangerChecker := rangecheck.New(api)
+		rangerChecker.Check(gadgetNullifier.Amount, 253)
+
+		for j := range gadget.AllAsset {
+			diff := api.Sub(gadget.AllAsset[j], gadgetNullifier.Asset)
+			isZero := api.IsZero(diff)
+			inputAmounts[j] = api.Add(inputAmounts[j], api.Mul(gadgetNullifier.Amount, isZero))
+		}
+
+		nullifier, err := gadgetNullifier.Compute(api)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute nullifier: %w", err)
 		}
@@ -67,8 +88,25 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 	ownerMemoHashes := make([]frontend.Variable, len(gadget.EphemeralReceiverSecretKey))
 	auditMemoHashes := make([]frontend.Variable, len(gadget.EphemeralAuditSecretKey))
 
+	outputAmounts := make([]frontend.Variable, len(gadget.AllAsset))
+
+	for i := range gadget.AllAsset {
+		outputAmounts[i] = 0
+	}
+
 	for i := range gadget.Commitment {
-		commitment, err := gadget.Commitment[i].Compute(api)
+		gadgetCommitment := gadget.Commitment[i]
+
+		rangerChecker := rangecheck.New(api)
+		rangerChecker.Check(gadgetCommitment.Amount, 253)
+
+		for j := range gadget.AllAsset {
+			diff := api.Sub(gadget.AllAsset[j], gadgetCommitment.Asset)
+			isZero := api.IsZero(diff)
+			outputAmounts[j] = api.Add(outputAmounts[j], api.Mul(gadgetCommitment.Amount, isZero))
+		}
+
+		commitment, err := gadgetCommitment.Compute(api)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute commitment: %w", err)
 		}
@@ -79,7 +117,7 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 			ReceiverPublicKey:  gadget.ReceiverPublicKey,
 		}
 
-		ownerMemoHash, err := ownerMemoGadget.Generate(api, gadget.Commitment[i])
+		ownerMemoHash, err := ownerMemoGadget.Generate(api, gadgetCommitment)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate owner memo: %w", err)
 		}
@@ -90,12 +128,14 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 			ReceiverPublicKey:  gadget.AuditPublicKey,
 		}
 
-		auditMemoHash, err := auditMemoGadget.Generate(api, gadget.Commitment[i])
+		auditMemoHash, err := auditMemoGadget.Generate(api, gadgetCommitment)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate audit memo: %w", err)
 		}
 		auditMemoHashes[i] = auditMemoHash
 	}
+
+	// api.AssertIsEqual(inputAmount, outputAmount)
 
 	return &UTXOResultGadget{
 		Nullifiers:      nullifiers,
@@ -110,10 +150,23 @@ type UTXOCircuit struct {
 	UTXOResultGadget
 }
 
-func NewUTXOCircuit(nullifierSize int, commitmentSize int) *UTXOCircuit {
+func NewUTXOCircuit(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOCircuit {
 	return &UTXOCircuit{
-		UTXOGadget:       *NewUTXOGadget(nullifierSize, commitmentSize),
+		UTXOGadget:       *NewUTXOGadget(allAssetSize, nullifierSize, commitmentSize),
 		UTXOResultGadget: *NewUTXOResultGadget(nullifierSize, commitmentSize),
+	}
+}
+
+func NewUTXOCircuitWitness(utxo *UTXO, utxoResult *UTXOResult) *UTXOCircuit {
+	allAsset := make([]frontend.Variable, len(utxoResult.AllAsset))
+
+	for i := range utxoResult.AllAsset {
+		allAsset[i] = utxoResult.AllAsset[i]
+	}
+
+	return &UTXOCircuit{
+		UTXOGadget:       *utxo.ToGadget(allAsset),
+		UTXOResultGadget: *utxoResult.ToGadget(),
 	}
 }
 
@@ -152,11 +205,12 @@ type UTXO struct {
 	AuditPublicKey    twistededwardbn254.PointAffine
 }
 
-func (utxo *UTXO) ToGadget() *UTXOGadget {
+func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) *UTXOGadget {
 	nullifiers := make([]NullifierGadget, len(utxo.Nullifier))
 	commitments := make([]CommitmentGadget, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
+
 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
 	}
 
@@ -186,6 +240,7 @@ func (utxo *UTXO) ToGadget() *UTXOGadget {
 	}
 
 	return &UTXOGadget{
+		AllAsset:                   allAsset,
 		Nullifier:                  nullifiers,
 		Commitment:                 commitments,
 		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
@@ -198,6 +253,7 @@ func (utxo *UTXO) ToGadget() *UTXOGadget {
 type UTXOResult struct {
 	Nullifiers  []fr.Element
 	Commitments []UTXOCommitment
+	AllAsset    []fr.Element
 }
 
 type UTXOCommitment struct {
@@ -215,6 +271,7 @@ func (result *UTXOResult) ToGadget() *UTXOResultGadget {
 	commitments := make([]frontend.Variable, len(result.Commitments))
 	ownerMemoHashes := make([]frontend.Variable, len(result.Commitments))
 	auditMemoHashes := make([]frontend.Variable, len(result.Commitments))
+	allAsset := make([]frontend.Variable, len(result.AllAsset))
 
 	for i := range result.Nullifiers {
 		nullifiers[i] = result.Nullifiers[i]
@@ -226,6 +283,10 @@ func (result *UTXOResult) ToGadget() *UTXOResultGadget {
 		auditMemoHashes[i] = result.Commitments[i].AuditHMAC
 	}
 
+	for i := range result.AllAsset {
+		allAsset[i] = result.AllAsset[i]
+	}
+
 	return &UTXOResultGadget{
 		Nullifiers:      nullifiers,
 		Commitments:     commitments,
@@ -234,30 +295,63 @@ func (result *UTXOResult) ToGadget() *UTXOResultGadget {
 	}
 }
 
+func addToAssetMapping(assetMapping map[fr.Element]*fr.Element, asset fr.Element, amount fr.Element) {
+	if _, ok := assetMapping[asset]; !ok {
+		assetMapping[asset] = &amount
+	} else {
+		assetMapping[asset].Add(assetMapping[asset], &amount)
+	}
+}
+
 func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 	nullifiers := make([]fr.Element, len(utxo.Nullifier))
 	commitments := make([]UTXOCommitment, len(utxo.Commitment))
 
+	allAssetInput := make(map[fr.Element]*fr.Element)
+
 	for i := range utxo.Nullifier {
-		nullifiers[i] = utxo.Nullifier[i].Compute()
+		utxoNullifier := utxo.Nullifier[i]
+
+		zero := fr.NewElement(0)
+		if utxoNullifier.Amount.Cmp(&zero) != 1 {
+			return nil, fmt.Errorf("nullifier must be greater than 0")
+		}
+
+		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
+
+		nullifiers[i] = utxoNullifier.Compute()
 	}
+
+	fmt.Println("allAssetInput", allAssetInput)
 
 	// Check balance of left and right side of the UTXO
 
 	result := UTXOResult{
 		Nullifiers:  nullifiers,
 		Commitments: commitments,
+		AllAsset:    make([]fr.Element, len(allAssetInput)),
 	}
 
+	allAssetOutput := make(map[fr.Element]*fr.Element)
+
 	for i := range utxo.Commitment {
-		commitment := utxo.Commitment[i].Compute()
+		utxoCommitment := utxo.Commitment[i]
+
+		zero := fr.NewElement(0)
+		if utxoCommitment.Amount.Cmp(&zero) != 1 {
+			return nil, fmt.Errorf("commitment must be greater than 0")
+		}
+
+		addToAssetMapping(allAssetOutput, utxoCommitment.Asset, utxoCommitment.Amount)
+
+		commitment := utxoCommitment.Compute()
 
 		ownerMemo := Memo{
 			SecretKey: utxo.EphemeralReceiverSecretKey[i],
 			PublicKey: utxo.ReceiverPublicKey,
 		}
 
-		ownerMemoEphemeralPublickKey, ownerMemoCiphertext, err := ownerMemo.Encrypt(utxo.Commitment[i])
+		ownerMemoEphemeralPublickKey, ownerMemoCiphertext, err := ownerMemo.Encrypt(utxoCommitment)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt owner memo: %w", err)
 		}
@@ -274,7 +368,7 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 			PublicKey: utxo.AuditPublicKey,
 		}
 
-		auditMemoEphemeralPublickKey, auditMemoCiphertext, err := auditMemo.Encrypt(utxo.Commitment[i])
+		auditMemoEphemeralPublickKey, auditMemoCiphertext, err := auditMemo.Encrypt(utxoCommitment)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt audit memo: %w", err)
 		}
@@ -295,6 +389,14 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 			AuditHMAC:                auditHMAC,
 			AuditEphemeralPublickKey: *auditMemoEphemeralPublickKey,
 		}
+	}
+
+	if !reflect.DeepEqual(allAssetInput, allAssetOutput) {
+		return nil, fmt.Errorf("input and output asset mapping must be the same")
+	}
+
+	for asset := range allAssetInput {
+		result.AllAsset = append(result.AllAsset, asset)
 	}
 
 	return &result, nil

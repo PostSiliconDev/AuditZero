@@ -158,17 +158,11 @@ func TestUTXO_ToGadget(t *testing.T) {
 	result, err := utxo.BuildAndCheck()
 	require.NoError(t, err)
 
-	utxoGadget := utxo.ToGadget()
-	resultGadget := result.ToGadget()
+	witness := circuits.NewUTXOCircuitWitness(utxo, result)
 
-	witness := circuits.UTXOCircuit{
-		UTXOGadget:       *utxoGadget,
-		UTXOResultGadget: *resultGadget,
-	}
-
-	utxoCircuit := circuits.NewUTXOCircuit(len(utxo.Nullifier), len(utxo.Commitment))
+	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), len(utxo.Nullifier), len(utxo.Commitment))
 
 	assert := test.NewAssert(t)
 
-	assert.ProverSucceeded(utxoCircuit, &witness, test.WithCurves(ecc.BN254))
+	assert.ProverSucceeded(utxoCircuit, witness, test.WithCurves(ecc.BN254))
 }

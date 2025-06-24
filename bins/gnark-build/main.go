@@ -187,18 +187,12 @@ func main() {
 		panic(err)
 	}
 
-	utxoGadget := utxo.ToGadget()
-	resultGadget := result.ToGadget()
+	assignment := circuits.NewUTXOCircuitWitness(utxo, result)
 
-	assignment := circuits.UTXOCircuit{
-		UTXOGadget:       *utxoGadget,
-		UTXOResultGadget: *resultGadget,
-	}
-
-	witness, _ := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
+	witness, _ := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
 	publicWitness, _ := witness.Public()
 
-	utxoCircuit := circuits.NewUTXOCircuit(len(utxo.Nullifier), len(utxo.Commitment))
+	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), len(utxo.Nullifier), len(utxo.Commitment))
 
 	cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, utxoCircuit)
 	if err != nil {
