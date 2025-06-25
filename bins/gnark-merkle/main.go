@@ -47,9 +47,9 @@ func main() {
 	hasher.Write(Input0.Marshal())
 	hasher.Write(Input1.Marshal())
 
-	hashBytes := hasher.Sum(make([]byte, 32))
+	hashBytes := hasher.Sum(nil)
 	hash := fr.NewElement(0)
-	hash.SetBytesCanonical(hashBytes)
+	hash.SetBytes(hashBytes)
 
 	fmt.Println(hash.Text(10))
 

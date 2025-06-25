@@ -35,7 +35,7 @@ func buildPureLeftMerkleProof() (*circuits.MerkleProof, fr.Element, error) {
 		hasher.Write(middleBytes[:])
 		hasher.Write(rightBytes[:])
 
-		hash := hasher.Sum(make([]byte, 32))
+		hash := hasher.Sum(nil)
 		hashElement := fr.NewElement(0)
 		hashElement.SetBytes(hash)
 

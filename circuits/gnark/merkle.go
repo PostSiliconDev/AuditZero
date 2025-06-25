@@ -6,7 +6,8 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	poseidonbn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/hash/poseidon2"
+	"github.com/consensys/gnark/std/hash"
+	"github.com/consensys/gnark/std/permutation/poseidon2"
 )
 
 const (
@@ -30,8 +31,14 @@ func (gadget *MerkleGadget) Verify(api frontend.API) (frontend.Variable, error) 
 		return 0, fmt.Errorf("invalid path or direction length")
 	}
 
+	params := poseidonbn254.GetDefaultParameters()
 	for i := 0; i < MAX_MERKLE_DEPTH-1; i++ {
-		hasher, err := poseidon2.NewMerkleDamgardHasher(api)
+		perm, err := poseidon2.NewPoseidon2FromParameters(api, params.Width, params.NbFullRounds, params.NbPartialRounds)
+		if err != nil {
+			return 0, err
+		}
+
+		hasher := hash.NewMerkleDamgardHasher(api, perm, 0)
 		if err != nil {
 			return 0, err
 		}
@@ -43,8 +50,12 @@ func (gadget *MerkleGadget) Verify(api frontend.API) (frontend.Variable, error) 
 		gadget.Path[i*3+1] = api.Mul(gadget.Path[i*3+1], hash)
 		gadget.Path[i*3+2] = api.Mul(gadget.Path[i*3+2], hash)
 	}
+	perm, err := poseidon2.NewPoseidon2FromParameters(api, params.Width, params.NbFullRounds, params.NbPartialRounds)
+	if err != nil {
+		return 0, err
+	}
 
-	hasher, err := poseidon2.NewMerkleDamgardHasher(api)
+	hasher := hash.NewMerkleDamgardHasher(api, perm, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -82,7 +93,7 @@ func (proof *MerkleProof) Verify(root fr.Element) error {
 		hasher.Write(middleBytes[:])
 		hasher.Write(rightBytes[:])
 
-		hash := hasher.Sum(make([]byte, 32))
+		hash := hasher.Sum(nil)
 		hashElement := fr.NewElement(0)
 		hashElement.SetBytes(hash)
 
@@ -104,7 +115,7 @@ func (proof *MerkleProof) Verify(root fr.Element) error {
 	hasher.Write(middleBytes[:])
 	hasher.Write(rightBytes[:])
 
-	hash := hasher.Sum(make([]byte, 32))
+	hash := hasher.Sum(nil)
 	hashElement := fr.NewElement(0)
 	hashElement.SetBytes(hash)
 
