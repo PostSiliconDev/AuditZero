@@ -1,29 +1,17 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	poseidonbn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	gnarksha3 "github.com/consensys/gnark/std/hash/sha3"
-	"github.com/consensys/gnark/std/math/uints"
+	"github.com/consensys/gnark/std/hash"
+	"github.com/consensys/gnark/std/permutation/poseidon2"
 )
-
-func BuildHashInput(api frontend.API, input frontend.Variable) []uints.U8 {
-	inputBits := api.ToBinary(input, 254)
-
-	inputBytes := make([]uints.U8, 32)
-
-	for i := 0; i < 32; i++ {
-		byteVar := api.FromBinary(inputBits[i*8 : (i+1)*8]...)
-
-		binaryField, _ := uints.New[uints.U32](api)
-		inputBytes[i] = binaryField.ByteValueOf(byteVar)
-	}
-
-	return inputBytes
-}
 
 type TestCircuit struct {
 	Input0 frontend.Variable `gnark:"input0"`
@@ -31,38 +19,45 @@ type TestCircuit struct {
 }
 
 func (circuit *TestCircuit) Define(api frontend.API) error {
-	in1Bits := api.ToBinary(circuit.Input0, 256)
-	in2Bits := api.ToBinary(circuit.Input1, 256)
+	params := poseidonbn254.GetDefaultParameters()
+	perm, err := poseidon2.NewPoseidon2FromParameters(api, params.Width, params.NbFullRounds, params.NbPartialRounds)
 
-	inputBits := append(in1Bits, in2Bits...)
-
-	inputBytes := make([]uints.U8, 64)
-
-	for i := 0; i < 64; i++ {
-		byteVar := api.FromBinary(inputBits[i*8 : (i+1)*8]...)
-
-		binaryField, _ := uints.New[uints.U32](api)
-		inputBytes[i] = binaryField.ByteValueOf(byteVar)
+	if err != nil {
+		return err
 	}
 
-	sha3Hasher, _ := gnarksha3.New256(api)
-	sha3Hasher.Write(inputBytes)
+	hasher := hash.NewMerkleDamgardHasher(api, perm, 0)
 
-	sha3Bytes := sha3Hasher.Sum()
+	hasher.Write(circuit.Input0)
+	hasher.Write(circuit.Input1)
 
-	for i := range sha3Bytes {
-		api.Println(sha3Bytes[i])
-	}
+	hash := hasher.Sum()
+
+	api.Println(hash)
 
 	return nil
 }
 
 func main() {
+	Input0 := fr.NewElement(0)
+	Input1 := fr.NewElement(1)
+
+	hasher := poseidonbn254.NewMerkleDamgardHasher()
+
+	hasher.Write(Input0.Marshal())
+	hasher.Write(Input1.Marshal())
+
+	hashBytes := hasher.Sum(make([]byte, 32))
+	hash := fr.NewElement(0)
+	hash.SetBytesCanonical(hashBytes)
+
+	fmt.Println(hash.Text(10))
+
 	circuit := TestCircuit{}
 
 	assignment := TestCircuit{
-		Input0: fr.NewElement(0),
-		Input1: fr.NewElement(1),
+		Input0: Input0,
+		Input1: Input1,
 	}
 
 	witness, _ := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
