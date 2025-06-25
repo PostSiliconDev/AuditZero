@@ -51,7 +51,6 @@ func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadge
 }
 
 func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, error) {
-
 	nullifiers := make([]frontend.Variable, len(gadget.Nullifier))
 	commitments := make([]frontend.Variable, len(gadget.Commitment))
 
