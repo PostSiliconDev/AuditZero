@@ -14,13 +14,13 @@ import (
 type UTXOGadget struct {
 	AllAsset []frontend.Variable `gnark:"allAsset"`
 
-	Nullifier                  []NullifierGadget   `gnark:"nullifier"`
-	Commitment                 []CommitmentGadget  `gnark:"commitment"`
-	EphemeralReceiverSecretKey []frontend.Variable `gnark:"ephemeralReceiverSecretKey"`
-	EphemeralAuditSecretKey    []frontend.Variable `gnark:"ephemeralAuditSecretKey"`
+	Nullifier  []NullifierGadget  `gnark:"nullifier"`
+	Commitment []CommitmentGadget `gnark:"commitment"`
 
-	ReceiverPublicKey [2]frontend.Variable `gnark:"receiverPublicKey"`
-	AuditPublicKey    [2]frontend.Variable `gnark:"auditPublicKey"`
+	EphemeralReceiverSecretKey []frontend.Variable  `gnark:"ephemeralReceiverSecretKey"`
+	EphemeralAuditSecretKey    []frontend.Variable  `gnark:"ephemeralAuditSecretKey"`
+	ReceiverPublicKey          [2]frontend.Variable `gnark:"receiverPublicKey"`
+	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
 }
 
 func NewUTXOGadget(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOGadget {
@@ -70,6 +70,8 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 
 		rangerChecker := rangecheck.New(api)
 		rangerChecker.Check(gadgetNullifier.Amount, 253)
+
+		// TODO: Check nullifier is in merkle tree
 
 		for j := range gadget.AllAsset {
 			diff := api.Sub(gadget.AllAsset[j], gadgetNullifier.Asset)
@@ -134,7 +136,9 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		auditMemoHashes[i] = auditMemoHash
 	}
 
-	// api.AssertIsEqual(inputAmount, outputAmount)
+	for i := range inputAmounts {
+		api.AssertIsEqual(inputAmounts[i], outputAmounts[i])
+	}
 
 	return &UTXOResultGadget{
 		Nullifiers:      nullifiers,
@@ -209,7 +213,6 @@ func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) *UTXOGadget {
 	commitments := make([]CommitmentGadget, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
-
 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
 	}
 
