@@ -2,6 +2,7 @@ package circuits
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	poseidonbn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
@@ -12,18 +13,16 @@ import (
 
 const (
 	MAX_MERKLE_DEPTH = 24
+	MERKLE_ROOT_POS  = 423644304721
 )
 
 type MerkleGadget struct {
-	Path      []frontend.Variable `gnark:"path"`
-	Direction []frontend.Variable `gnark:"direction"`
+	Path      [MAX_MERKLE_DEPTH * 3]frontend.Variable `gnark:"path"`
+	Direction [MAX_MERKLE_DEPTH * 3]frontend.Variable `gnark:"direction"`
 }
 
 func NewMerkleGadget() *MerkleGadget {
-	return &MerkleGadget{
-		Path:      make([]frontend.Variable, MAX_MERKLE_DEPTH*3),
-		Direction: make([]frontend.Variable, MAX_MERKLE_DEPTH*3),
-	}
+	return &MerkleGadget{}
 }
 
 func (gadget *MerkleGadget) Verify(api frontend.API) (frontend.Variable, error) {
@@ -39,10 +38,6 @@ func (gadget *MerkleGadget) Verify(api frontend.API) (frontend.Variable, error) 
 		}
 
 		hasher := hash.NewMerkleDamgardHasher(api, perm, 0)
-		if err != nil {
-			return 0, err
-		}
-
 		hasher.Write(gadget.Path[i*3], gadget.Path[i*3+1], gadget.Path[i*3+2])
 		hash := hasher.Sum()
 
@@ -56,10 +51,6 @@ func (gadget *MerkleGadget) Verify(api frontend.API) (frontend.Variable, error) 
 	}
 
 	hasher := hash.NewMerkleDamgardHasher(api, perm, 0)
-	if err != nil {
-		return 0, err
-	}
-
 	hasher.Write(gadget.Path[MAX_MERKLE_DEPTH*3-3], gadget.Path[MAX_MERKLE_DEPTH*3-2], gadget.Path[MAX_MERKLE_DEPTH*3-1])
 	hash := hasher.Sum()
 
@@ -74,12 +65,12 @@ type MerkleProofNode struct {
 }
 
 type MerkleProof struct {
-	Path []MerkleProofNode
+	Path [MAX_MERKLE_DEPTH]MerkleProofNode
 }
 
-func (proof *MerkleProof) Verify(root fr.Element) error {
+func (proof *MerkleProof) Verify() (fr.Element, error) {
 	if len(proof.Path) != MAX_MERKLE_DEPTH {
-		return fmt.Errorf("invalid proof length")
+		return fr.NewElement(0), fmt.Errorf("invalid proof length")
 	}
 
 	for i := 0; i < MAX_MERKLE_DEPTH-1; i++ {
@@ -119,16 +110,12 @@ func (proof *MerkleProof) Verify(root fr.Element) error {
 	hashElement := fr.NewElement(0)
 	hashElement.SetBytes(hash)
 
-	if hashElement != root {
-		return fmt.Errorf("invalid root")
-	}
-
-	return nil
+	return hashElement, nil
 }
 
 func (proof *MerkleProof) ToGadget() (*MerkleGadget, error) {
-	path := make([]frontend.Variable, len(proof.Path)*3)
-	direction := make([]frontend.Variable, len(proof.Path)*3)
+	path := [MAX_MERKLE_DEPTH * 3]frontend.Variable{}
+	direction := [MAX_MERKLE_DEPTH * 3]frontend.Variable{}
 
 	for i := range proof.Path {
 		path[i*3] = proof.Path[i].Left
@@ -153,4 +140,67 @@ func (proof *MerkleProof) ToGadget() (*MerkleGadget, error) {
 	}
 
 	return &MerkleGadget{Path: path, Direction: direction}, nil
+}
+
+func HashMerkleNode(left, middle, right fr.Element) fr.Element {
+	leftBytes := left.Bytes()
+	middleBytes := middle.Bytes()
+	rightBytes := right.Bytes()
+
+	hasher := poseidonbn254.NewMerkleDamgardHasher()
+	hasher.Write(leftBytes[:])
+	hasher.Write(middleBytes[:])
+	hasher.Write(rightBytes[:])
+
+	hash := hasher.Sum(nil)
+	hashElement := fr.NewElement(0)
+	hashElement.SetBytes(hash)
+
+	return hashElement
+}
+
+type MerkleTree struct {
+	Tree map[int]fr.Element
+}
+
+func BuildMerkleTree(commitments []fr.Element) (*MerkleTree, error) {
+	treeDepth := MAX_MERKLE_DEPTH
+
+	tree := &MerkleTree{
+		Tree: make(map[int]fr.Element),
+	}
+
+	for i := range commitments {
+		tree.Tree[i] = commitments[i]
+	}
+
+	index := 0
+	numNodeThisLevel := len(commitments)/3 + 1
+
+	for i := 0; i < treeDepth+1; i++ {
+		nextLevelIndex := index + int(math.Pow(float64(3), float64(treeDepth-i)))
+		index_step := treeDepth - i
+
+		for j := 0; j < numNodeThisLevel; j++ {
+			left := tree.Tree[index+j*3]
+			middle := tree.Tree[index+j*3+1]
+			right := tree.Tree[index+j*3+2]
+			tree.Tree[nextLevelIndex+j] = HashMerkleNode(left, middle, right)
+		}
+
+		numNodeThisLevel = numNodeThisLevel/3 + 1
+		index += int(math.Pow(float64(3), float64(index_step)))
+	}
+
+	return tree, nil
+}
+
+func (tree *MerkleTree) GetRoot() fr.Element {
+	return tree.Tree[MERKLE_ROOT_POS]
+}
+
+func (tree *MerkleTree) GetProof(index int) (*MerkleProof, error) {
+	proof := &MerkleProof{}
+
+	return proof, nil
 }

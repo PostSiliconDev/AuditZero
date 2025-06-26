@@ -14,7 +14,9 @@ import (
 type UTXOGadget struct {
 	AllAsset []frontend.Variable `gnark:"allAsset"`
 
-	Nullifier  []NullifierGadget  `gnark:"nullifier"`
+	Nullifier   []NullifierGadget `gnark:"nullifier"`
+	MerkleProof []MerkleGadget    `gnark:"merkleProof"`
+
 	Commitment []CommitmentGadget `gnark:"commitment"`
 
 	EphemeralReceiverSecretKey []frontend.Variable  `gnark:"ephemeralReceiverSecretKey"`
@@ -39,6 +41,7 @@ type UTXOResultGadget struct {
 	Commitments     []frontend.Variable `gnark:"commitments,public"`
 	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
 	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
+	Root            frontend.Variable   `gnark:"root,public"`
 }
 
 func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadget {
@@ -160,17 +163,22 @@ func NewUTXOCircuit(allAssetSize int, nullifierSize int, commitmentSize int) *UT
 	}
 }
 
-func NewUTXOCircuitWitness(utxo *UTXO, utxoResult *UTXOResult) *UTXOCircuit {
+func NewUTXOCircuitWitness(utxo *UTXO, utxoResult *UTXOResult) (*UTXOCircuit, error) {
 	allAsset := make([]frontend.Variable, len(utxoResult.AllAsset))
 
 	for i := range utxoResult.AllAsset {
 		allAsset[i] = utxoResult.AllAsset[i]
 	}
 
-	return &UTXOCircuit{
-		UTXOGadget:       *utxo.ToGadget(allAsset),
-		UTXOResultGadget: *utxoResult.ToGadget(),
+	utxoGadget, err := utxo.ToGadget(allAsset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert UTXO to gadget: %w", err)
 	}
+
+	return &UTXOCircuit{
+		UTXOGadget:       *utxoGadget,
+		UTXOResultGadget: *utxoResult.ToGadget(),
+	}, nil
 }
 
 func (circuit *UTXOCircuit) Define(api frontend.API) error {
@@ -201,6 +209,7 @@ func (circuit *UTXOCircuit) Define(api frontend.API) error {
 type UTXO struct {
 	Nullifier                  []Nullifier
 	Commitment                 []Commitment
+	MerkleProof                []MerkleProof
 	EphemeralReceiverSecretKey []big.Int
 	EphemeralAuditSecretKey    []big.Int
 
@@ -208,12 +217,22 @@ type UTXO struct {
 	AuditPublicKey    twistededwardbn254.PointAffine
 }
 
-func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) *UTXOGadget {
+func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*UTXOGadget, error) {
 	nullifiers := make([]NullifierGadget, len(utxo.Nullifier))
+	merkleProofs := make([]MerkleGadget, len(utxo.MerkleProof))
+
 	commitments := make([]CommitmentGadget, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
+	}
+
+	for i := range utxo.MerkleProof {
+		merkleProof, err := utxo.MerkleProof[i].ToGadget()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert merkle proof to gadget: %w", err)
+		}
+		merkleProofs[i] = *merkleProof
 	}
 
 	for i := range utxo.Commitment {
@@ -244,18 +263,20 @@ func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) *UTXOGadget {
 	return &UTXOGadget{
 		AllAsset:                   allAsset,
 		Nullifier:                  nullifiers,
+		MerkleProof:                merkleProofs,
 		Commitment:                 commitments,
 		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
 		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
 		ReceiverPublicKey:          receiverPublicKey,
 		AuditPublicKey:             auditPublicKey,
-	}
+	}, nil
 }
 
 type UTXOResult struct {
 	Nullifiers  []fr.Element
 	Commitments []UTXOCommitment
 	AllAsset    []fr.Element
+	Root        fr.Element
 }
 
 type UTXOCommitment struct {
@@ -311,6 +332,8 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 
 	allAssetInput := make(map[fr.Element]*fr.Element)
 
+	currentRoot := fr.NewElement(0)
+
 	for i := range utxo.Nullifier {
 		utxoNullifier := utxo.Nullifier[i]
 
@@ -322,16 +345,27 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
 
 		nullifiers[i] = utxoNullifier.Compute()
+
+		merkleProof := utxo.MerkleProof[i]
+		root, err := merkleProof.Verify()
+		if i == 0 {
+			currentRoot = root
+		} else {
+			if currentRoot.Cmp(&root) != 0 {
+				return nil, fmt.Errorf("merkle proof is not valid")
+			}
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify merkle proof: %w", err)
+		}
 	}
-
-	fmt.Println("allAssetInput", allAssetInput)
-
-	// Check balance of left and right side of the UTXO
 
 	result := UTXOResult{
 		Nullifiers:  nullifiers,
 		Commitments: commitments,
 		AllAsset:    make([]fr.Element, len(allAssetInput)),
+		Root:        currentRoot,
 	}
 
 	allAssetOutput := make(map[fr.Element]*fr.Element)

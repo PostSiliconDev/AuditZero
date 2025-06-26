@@ -109,40 +109,65 @@ func main() {
 		panic(err)
 	}
 
+	nullifier := circuits.Nullifier{
+		Commitment: circuits.Commitment{
+			Asset:    fr.NewElement(1),
+			Amount:   fr.NewElement(2),
+			Blinding: circuits.BigIntToFr(blinding0),
+		},
+		PrivateKey: circuits.BigIntToFr(senderSecretKey),
+	}
+
+	nullifier0 := nullifier
+	nullifier1 := nullifier
+	nullifier2 := nullifier
+	nullifier3 := nullifier
+
+	nullifier0.Blinding = circuits.BigIntToFr(blinding0)
+	nullifier1.Blinding = circuits.BigIntToFr(blinding1)
+	nullifier2.Blinding = circuits.BigIntToFr(blinding2)
+	nullifier3.Blinding = circuits.BigIntToFr(blinding3)
+
+	// nullifierHash0 := nullifier0.Compute()
+	// nullifierHash1 := nullifier1.Compute()
+	// nullifierHash2 := nullifier2.Compute()
+	// nullifierHash3 := nullifier3.Compute()
+
+	// leafNode0 := circuits.MerkleProofNode{
+	// 	Left:      nullifierHash0,
+	// 	Middle:    nullifierHash1,
+	// 	Right:     nullifierHash2,
+	// 	Direction: 0,
+	// }
+
+	// leafNode1 := circuits.MerkleProofNode{
+	// 	Left:      nullifierHash3,
+	// 	Middle:    fr.NewElement(0),
+	// 	Right:     fr.NewElement(0),
+	// 	Direction: 1,
+	// }
+
+	// nextNode := circuits.MerkleProofNode{
+	// 	Left:      circuits.HashMerkleNode(leafNode0.Left, leafNode0.Middle, leafNode0.Right),
+	// 	Middle:    circuits.HashMerkleNode(leafNode1.Left, leafNode1.Middle, leafNode1.Right),
+	// 	Right:     fr.NewElement(0),
+	// 	Direction: 0,
+	// }
+
+	// merkleProof1 := circuits.MerkleProof{
+	// 	Path: [circuits.MAX_MERKLE_DEPTH]circuits.MerkleProofNode{
+	// 		leafNode0,
+	// 		leafNode1,
+	// 		nextNode,
+	// 	},
+	// }
+
 	utxo := &circuits.UTXO{
 		Nullifier: []circuits.Nullifier{
-			{
-				Commitment: circuits.Commitment{
-					Asset:    fr.NewElement(1),
-					Amount:   fr.NewElement(2),
-					Blinding: circuits.BigIntToFr(blinding0),
-				},
-				PrivateKey: circuits.BigIntToFr(senderSecretKey),
-			},
-			{
-				Commitment: circuits.Commitment{
-					Asset:    fr.NewElement(1),
-					Amount:   fr.NewElement(2),
-					Blinding: circuits.BigIntToFr(blinding1),
-				},
-				PrivateKey: circuits.BigIntToFr(senderSecretKey),
-			},
-			{
-				Commitment: circuits.Commitment{
-					Asset:    fr.NewElement(1),
-					Amount:   fr.NewElement(2),
-					Blinding: circuits.BigIntToFr(blinding2),
-				},
-				PrivateKey: circuits.BigIntToFr(senderSecretKey),
-			},
-			{
-				Commitment: circuits.Commitment{
-					Asset:    fr.NewElement(1),
-					Amount:   fr.NewElement(2),
-					Blinding: circuits.BigIntToFr(blinding3),
-				},
-				PrivateKey: circuits.BigIntToFr(senderSecretKey),
-			},
+			nullifier0,
+			nullifier1,
+			nullifier2,
+			nullifier3,
 		},
 		Commitment: []circuits.Commitment{
 			{
@@ -187,7 +212,10 @@ func main() {
 		panic(err)
 	}
 
-	assignment := circuits.NewUTXOCircuitWitness(utxo, result)
+	assignment, err := circuits.NewUTXOCircuitWitness(utxo, result)
+	if err != nil {
+		panic(err)
+	}
 
 	witness, _ := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
 	publicWitness, _ := witness.Public()

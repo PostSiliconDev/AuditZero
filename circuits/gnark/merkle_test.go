@@ -1,12 +1,12 @@
 package circuits_test
 
 import (
+	"fmt"
 	circuits "hide-pay/circuits/gnark"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	poseidonbn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ import (
 
 func buildPureLeftMerkleProof() (*circuits.MerkleProof, fr.Element, error) {
 	proof := circuits.MerkleProof{
-		Path: make([]circuits.MerkleProofNode, circuits.MAX_MERKLE_DEPTH),
+		Path: [circuits.MAX_MERKLE_DEPTH]circuits.MerkleProofNode{},
 	}
 
 	current := fr.NewElement(100)
@@ -25,32 +25,19 @@ func buildPureLeftMerkleProof() (*circuits.MerkleProof, fr.Element, error) {
 		proof.Path[i].Right = fr.NewElement(0)
 		proof.Path[i].Direction = 0
 
-		hasher := poseidonbn254.NewMerkleDamgardHasher()
-
-		leftBytes := proof.Path[i].Left.Bytes()
-		middleBytes := proof.Path[i].Middle.Bytes()
-		rightBytes := proof.Path[i].Right.Bytes()
-
-		hasher.Write(leftBytes[:])
-		hasher.Write(middleBytes[:])
-		hasher.Write(rightBytes[:])
-
-		hash := hasher.Sum(nil)
-		hashElement := fr.NewElement(0)
-		hashElement.SetBytes(hash)
-
-		current = hashElement
+		current = circuits.HashMerkleNode(proof.Path[i].Left, proof.Path[i].Middle, proof.Path[i].Right)
 	}
 
 	return &proof, current, nil
 }
 
 func TestMerkleProof(t *testing.T) {
-	proof, root, err := buildPureLeftMerkleProof()
+	proof, rootBuild, err := buildPureLeftMerkleProof()
 	assert.NoError(t, err)
 
-	err = proof.Verify(root)
+	root, err := proof.Verify()
 	assert.NoError(t, err)
+	assert.Equal(t, root, rootBuild)
 }
 
 type MerkleCircuit struct {
@@ -88,4 +75,30 @@ func TestMerkleCircuit(t *testing.T) {
 	options := test.WithCurves(ecc.BN254)
 
 	assert.ProverSucceeded(&circuit, &witness, options)
+}
+
+func TestMerkleTree(t *testing.T) {
+	commitments := []fr.Element{
+		fr.NewElement(0),
+		fr.NewElement(1),
+		fr.NewElement(2),
+		fr.NewElement(3),
+		fr.NewElement(4),
+		fr.NewElement(5),
+		fr.NewElement(6),
+		fr.NewElement(7),
+		fr.NewElement(8),
+		fr.NewElement(9),
+		fr.NewElement(10),
+		fr.NewElement(11),
+		fr.NewElement(12),
+		fr.NewElement(13),
+	}
+
+	tree, err := circuits.BuildMerkleTree(commitments)
+	assert.NoError(t, err)
+
+	for k, v := range tree.Tree {
+		fmt.Println("index:", k, ",value:", v.Text(10))
+	}
 }
