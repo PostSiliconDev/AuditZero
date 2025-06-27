@@ -2,7 +2,7 @@ package circuits_test
 
 import (
 	"fmt"
-	circuits "hide-pay/circuits/gnark"
+	"hide-pay/circuits"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"

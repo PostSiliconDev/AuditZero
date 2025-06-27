@@ -1,7 +1,7 @@
 package circuits_test
 
 import (
-	circuits "hide-pay/circuits/gnark"
+	"hide-pay/circuits"
 	"math/big"
 	"testing"
 

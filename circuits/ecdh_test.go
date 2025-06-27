@@ -10,9 +10,8 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
-	circuits "hide-pay/circuits/gnark"
+	"hide-pay/circuits"
 )
 
 func TestECDH_Compute(t *testing.T) {
@@ -110,7 +109,7 @@ func TestECDH_ToCircuit(t *testing.T) {
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
 	circuit := ecdh.ToGadget()
-	require.NotNil(t, circuit)
+	assert.NotNil(t, circuit)
 
 	// Verify circuit fields
 	assert.Equal(t, ecdh.PublicKey.X, circuit.PublicKey[0])
@@ -139,7 +138,7 @@ func TestECDH_Circuit_Verification(t *testing.T) {
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
 	circuit := NewECDHCircuit()
-	require.NotNil(t, circuit)
+	assert.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
@@ -160,7 +159,7 @@ func TestECDH_Circuit_InvalidWitness(t *testing.T) {
 	ecdh := circuits.NewECDH(*big.NewInt(11111), *big.NewInt(22222))
 
 	circuit := NewECDHCircuit()
-	require.NotNil(t, circuit)
+	assert.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
@@ -211,7 +210,7 @@ func TestECDH_Circuit_DifferentInputs(t *testing.T) {
 			ecdh := circuits.NewECDH(tc.secretKey, tc.secretKey)
 
 			circuit := NewECDHCircuit()
-			require.NotNil(t, circuit)
+			assert.NotNil(t, circuit)
 
 			// Create witness
 			witness := ECDHCircuit{

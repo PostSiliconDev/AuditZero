@@ -2,7 +2,7 @@ package circuits_test
 
 import (
 	"fmt"
-	circuits "hide-pay/circuits/gnark"
+	"hide-pay/circuits"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -10,7 +10,6 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNullifier_Compute(t *testing.T) {
@@ -165,7 +164,7 @@ func TestNullifier_ToWitness(t *testing.T) {
 	}
 
 	witness := nullifier.ToGadget()
-	require.NotNil(t, witness)
+	assert.NotNil(t, witness)
 
 	// Verify circuit fields
 	assert.Equal(t, nullifier.Asset, witness.Asset)
@@ -233,7 +232,7 @@ func TestNullifier_Circuit_Verification(t *testing.T) {
 	}
 
 	circuit := NewNullifierCircuit()
-	require.NotNil(t, circuit)
+	assert.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
@@ -261,7 +260,7 @@ func TestNullifier_Circuit_InvalidWitness(t *testing.T) {
 	}
 
 	circuit := NewNullifierCircuit()
-	require.NotNil(t, circuit)
+	assert.NotNil(t, circuit)
 
 	assert := test.NewAssert(t)
 
@@ -304,7 +303,7 @@ func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
 			}
 
 			circuit := NewNullifierCircuit()
-			require.NotNil(t, circuit)
+			assert.NotNil(t, circuit)
 
 			assert := test.NewAssert(t)
 
@@ -331,7 +330,7 @@ func TestNullifier_ToCommitment(t *testing.T) {
 	}
 
 	commitment := nullifier.ToCommitment()
-	require.NotNil(t, commitment)
+	assert.NotNil(t, commitment)
 
 	// Verify commitment fields (should not include private key)
 	assert.Equal(t, nullifier.Asset, commitment.Asset)
@@ -371,7 +370,7 @@ func TestNullifier_Compute_EdgeCases(t *testing.T) {
 
 			// Test circuit verification for edge cases
 			circuit := NewNullifierCircuit()
-			require.NotNil(t, circuit)
+			assert.NotNil(t, circuit)
 
 			assert := test.NewAssert(t)
 

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	circuits "hide-pay/circuits/gnark"
+	"hide-pay/circuits"
 )
 
 func buildPublicKey(secretKey big.Int) twistededwardbn254.PointAffine {

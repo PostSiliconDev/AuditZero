@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	circuits "hide-pay/circuits/gnark"
+	"hide-pay/circuits"
 	"math/big"
 	"time"
 
