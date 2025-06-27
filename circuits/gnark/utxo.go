@@ -14,8 +14,7 @@ import (
 type UTXOGadget struct {
 	AllAsset []frontend.Variable `gnark:"allAsset"`
 
-	Nullifier   []NullifierGadget `gnark:"nullifier"`
-	MerkleProof []MerkleGadget    `gnark:"merkleProof"`
+	Nullifier []NullifierGadget `gnark:"nullifier"`
 
 	Commitment []CommitmentGadget `gnark:"commitment"`
 
@@ -41,7 +40,6 @@ type UTXOResultGadget struct {
 	Commitments     []frontend.Variable `gnark:"commitments,public"`
 	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
 	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
-	Root            frontend.Variable   `gnark:"root,public"`
 }
 
 func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadget {
@@ -209,7 +207,6 @@ func (circuit *UTXOCircuit) Define(api frontend.API) error {
 type UTXO struct {
 	Nullifier                  []Nullifier
 	Commitment                 []Commitment
-	MerkleProof                []MerkleProof
 	EphemeralReceiverSecretKey []big.Int
 	EphemeralAuditSecretKey    []big.Int
 
@@ -219,20 +216,11 @@ type UTXO struct {
 
 func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*UTXOGadget, error) {
 	nullifiers := make([]NullifierGadget, len(utxo.Nullifier))
-	merkleProofs := make([]MerkleGadget, len(utxo.MerkleProof))
 
 	commitments := make([]CommitmentGadget, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
-	}
-
-	for i := range utxo.MerkleProof {
-		merkleProof, err := utxo.MerkleProof[i].ToGadget()
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert merkle proof to gadget: %w", err)
-		}
-		merkleProofs[i] = *merkleProof
 	}
 
 	for i := range utxo.Commitment {
@@ -261,9 +249,9 @@ func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*UTXOGadget, error) {
 	}
 
 	return &UTXOGadget{
-		AllAsset:                   allAsset,
-		Nullifier:                  nullifiers,
-		MerkleProof:                merkleProofs,
+		AllAsset:  allAsset,
+		Nullifier: nullifiers,
+		// MerkleProof:                merkleProofs,
 		Commitment:                 commitments,
 		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
 		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
@@ -345,20 +333,6 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
 
 		nullifiers[i] = utxoNullifier.Compute()
-
-		merkleProof := utxo.MerkleProof[i]
-		root, err := merkleProof.Verify()
-		if i == 0 {
-			currentRoot = root
-		} else {
-			if currentRoot.Cmp(&root) != 0 {
-				return nil, fmt.Errorf("merkle proof is not valid")
-			}
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to verify merkle proof: %w", err)
-		}
 	}
 
 	result := UTXOResult{

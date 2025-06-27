@@ -128,36 +128,6 @@ func main() {
 	nullifier2.Blinding = circuits.BigIntToFr(blinding2)
 	nullifier3.Blinding = circuits.BigIntToFr(blinding3)
 
-	tree, err := circuits.BuildMerkleTree([]fr.Element{
-		nullifier0.Commitment.Compute(),
-		nullifier1.Commitment.Compute(),
-		nullifier2.Commitment.Compute(),
-		nullifier3.Commitment.Compute(),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	proof0, err := tree.GetProof(0)
-	if err != nil {
-		panic(err)
-	}
-
-	proof1, err := tree.GetProof(1)
-	if err != nil {
-		panic(err)
-	}
-
-	proof2, err := tree.GetProof(2)
-	if err != nil {
-		panic(err)
-	}
-
-	proof3, err := tree.GetProof(3)
-	if err != nil {
-		panic(err)
-	}
-
 	utxo := &circuits.UTXO{
 		Nullifier: []circuits.Nullifier{
 			nullifier0,
@@ -187,12 +157,6 @@ func main() {
 				Blinding: circuits.BigIntToFr(blinding7),
 			},
 		},
-		MerkleProof: []circuits.MerkleProof{
-			*proof0,
-			*proof1,
-			*proof2,
-			*proof3,
-		},
 		EphemeralReceiverSecretKey: []big.Int{
 			EphemeralReceiverSecretKey1,
 			EphemeralReceiverSecretKey2,
@@ -219,8 +183,15 @@ func main() {
 		panic(err)
 	}
 
-	witness, _ := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
-	publicWitness, _ := witness.Public()
+	witness, err := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
+	if err != nil {
+		panic("build witness: " + err.Error())
+	}
+
+	publicWitness, err := witness.Public()
+	if err != nil {
+		panic("build public witness: " + err.Error())
+	}
 
 	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), len(utxo.Nullifier), len(utxo.Commitment))
 
