@@ -7,26 +7,20 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"hide-pay/circuits"
+	"hide-pay/utils"
 )
-
-func buildPublicKey(secretKey big.Int) twistededwardbn254.PointAffine {
-	basePoint := twistededwardbn254.GetEdwardsCurve().Base
-
-	return *basePoint.ScalarMultiplication(&basePoint, &secretKey)
-}
 
 func TestMemo_Encrypt(t *testing.T) {
 	// Test basic memo encryption
 	memo := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -50,7 +44,7 @@ func TestMemo_Encrypt_DifferentInputs(t *testing.T) {
 	// Test that different inputs produce different ciphertexts
 	memo := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment1 := &circuits.Commitment{
@@ -79,7 +73,7 @@ func TestMemo_Encrypt_Deterministic(t *testing.T) {
 	// Test that same inputs produce same ciphertext (deterministic)
 	memo := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -107,7 +101,7 @@ func TestMemo_Decrypt(t *testing.T) {
 	// Test basic memo decryption
 	memo := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	originalCommitment := &circuits.Commitment{
@@ -135,7 +129,7 @@ func TestMemo_Decrypt_InvalidCiphertext(t *testing.T) {
 	// Test decryption with invalid ciphertext
 	memo := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	// Invalid ciphertext (wrong length)
@@ -189,7 +183,7 @@ func TestMemo_EncryptDecrypt_RoundTrip(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			memo := &circuits.Memo{
 				SecretKey: tc.secretKey,
-				PublicKey: buildPublicKey(tc.secretKey),
+				PublicKey: utils.BuildPublicKey(tc.secretKey),
 			}
 
 			originalCommitment := &circuits.Commitment{
@@ -218,12 +212,12 @@ func TestMemo_Decrypt_WrongKey(t *testing.T) {
 	// Test decryption with wrong key
 	memo1 := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	memo2 := &circuits.Memo{
 		SecretKey: *big.NewInt(99999), // Different secret key
-		PublicKey: buildPublicKey(*big.NewInt(99999)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(99999)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -282,7 +276,7 @@ func TestMemo_EdgeCases(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			memo := &circuits.Memo{
 				SecretKey: tc.secretKey,
-				PublicKey: buildPublicKey(tc.receiverSecretKey),
+				PublicKey: utils.BuildPublicKey(tc.receiverSecretKey),
 			}
 
 			commitment := &circuits.Commitment{
@@ -313,7 +307,7 @@ func TestMemo_Consistency(t *testing.T) {
 	// Test consistency across multiple operations
 	memo := &circuits.Memo{
 		SecretKey: *big.NewInt(11111),
-		PublicKey: buildPublicKey(*big.NewInt(11111)),
+		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
 	commitment := &circuits.Commitment{
@@ -361,7 +355,7 @@ func TestMemo_LargeSecretKey(t *testing.T) {
 
 	memo := &circuits.Memo{
 		SecretKey: *largeKey,
-		PublicKey: buildPublicKey(*largeKey),
+		PublicKey: utils.BuildPublicKey(*largeKey),
 	}
 
 	commitment := &circuits.Commitment{
@@ -390,7 +384,7 @@ func TestMemo_Exchange_Encrypt_Decrypt(t *testing.T) {
 	ephemeralSecretKey := big.NewInt(1111111)
 	receiverSecretKey := big.NewInt(22222)
 
-	receiverPublicKey := buildPublicKey(*receiverSecretKey)
+	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
 
 	// Test exchange encrypt and decrypt
 	memo1 := &circuits.Memo{
@@ -455,7 +449,7 @@ func (circuit *MemoCircuit) Define(api frontend.API) error {
 func TestMemo_ToCircuit(t *testing.T) {
 	secretKey := big.NewInt(11111)
 	receiverSecretKey := big.NewInt(22222)
-	receiverPublicKey := buildPublicKey(*receiverSecretKey)
+	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
 
 	memo := &circuits.Memo{
 		SecretKey: *secretKey,

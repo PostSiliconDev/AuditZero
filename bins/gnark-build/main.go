@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hide-pay/builder"
 	"hide-pay/circuits"
 	"math/big"
 	"time"
@@ -128,7 +129,7 @@ func main() {
 	nullifier2.Blinding = circuits.BigIntToFr(blinding2)
 	nullifier3.Blinding = circuits.BigIntToFr(blinding3)
 
-	utxo := &circuits.UTXO{
+	utxo := &builder.UTXO{
 		Nullifier: []circuits.Nullifier{
 			nullifier0,
 			nullifier1,
@@ -178,7 +179,7 @@ func main() {
 		panic(err)
 	}
 
-	assignment, err := circuits.NewUTXOCircuitWitness(utxo, result)
+	assignment, err := builder.NewUTXOCircuitWitness(utxo, result)
 	if err != nil {
 		panic(err)
 	}
