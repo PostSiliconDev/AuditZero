@@ -227,7 +227,7 @@ func (tree *MerkleTree) GetProof(nodeIndex int) (*MerkleProof, error) {
 
 		// fmt.Println("--------------------------------")
 		// fmt.Println("numNodeThisLevel", numNodeThisLevel)
-		fmt.Println("beginOffestThisLevel", beginOffestThisLevel)
+		// fmt.Println("beginOffestThisLevel", beginOffestThisLevel)
 		// fmt.Println("index", index)
 		// fmt.Println("i", i)
 

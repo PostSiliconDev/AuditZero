@@ -128,39 +128,35 @@ func main() {
 	nullifier2.Blinding = circuits.BigIntToFr(blinding2)
 	nullifier3.Blinding = circuits.BigIntToFr(blinding3)
 
-	// nullifierHash0 := nullifier0.Compute()
-	// nullifierHash1 := nullifier1.Compute()
-	// nullifierHash2 := nullifier2.Compute()
-	// nullifierHash3 := nullifier3.Compute()
+	tree, err := circuits.BuildMerkleTree([]fr.Element{
+		nullifier0.Commitment.Compute(),
+		nullifier1.Commitment.Compute(),
+		nullifier2.Commitment.Compute(),
+		nullifier3.Commitment.Compute(),
+	})
+	if err != nil {
+		panic(err)
+	}
 
-	// leafNode0 := circuits.MerkleProofNode{
-	// 	Left:      nullifierHash0,
-	// 	Middle:    nullifierHash1,
-	// 	Right:     nullifierHash2,
-	// 	Direction: 0,
-	// }
+	proof0, err := tree.GetProof(0)
+	if err != nil {
+		panic(err)
+	}
 
-	// leafNode1 := circuits.MerkleProofNode{
-	// 	Left:      nullifierHash3,
-	// 	Middle:    fr.NewElement(0),
-	// 	Right:     fr.NewElement(0),
-	// 	Direction: 1,
-	// }
+	proof1, err := tree.GetProof(1)
+	if err != nil {
+		panic(err)
+	}
 
-	// nextNode := circuits.MerkleProofNode{
-	// 	Left:      circuits.HashMerkleNode(leafNode0.Left, leafNode0.Middle, leafNode0.Right),
-	// 	Middle:    circuits.HashMerkleNode(leafNode1.Left, leafNode1.Middle, leafNode1.Right),
-	// 	Right:     fr.NewElement(0),
-	// 	Direction: 0,
-	// }
+	proof2, err := tree.GetProof(2)
+	if err != nil {
+		panic(err)
+	}
 
-	// merkleProof1 := circuits.MerkleProof{
-	// 	Path: [circuits.MAX_MERKLE_DEPTH]circuits.MerkleProofNode{
-	// 		leafNode0,
-	// 		leafNode1,
-	// 		nextNode,
-	// 	},
-	// }
+	proof3, err := tree.GetProof(3)
+	if err != nil {
+		panic(err)
+	}
 
 	utxo := &circuits.UTXO{
 		Nullifier: []circuits.Nullifier{
@@ -190,6 +186,12 @@ func main() {
 				Amount:   fr.NewElement(2),
 				Blinding: circuits.BigIntToFr(blinding7),
 			},
+		},
+		MerkleProof: []circuits.MerkleProof{
+			*proof0,
+			*proof1,
+			*proof2,
+			*proof3,
 		},
 		EphemeralReceiverSecretKey: []big.Int{
 			EphemeralReceiverSecretKey1,
