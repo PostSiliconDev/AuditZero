@@ -13,7 +13,7 @@ import (
 
 const (
 	MAX_MERKLE_DEPTH = 24
-	MERKLE_ROOT_POS  = 423644304721
+	MERKLE_ROOT_POS  = 423644304720
 )
 
 type MerkleGadget struct {
@@ -177,7 +177,7 @@ func BuildMerkleTree(commitments []fr.Element) (*MerkleTree, error) {
 	index := 0
 	numNodeThisLevel := len(commitments)/3 + 1
 
-	for i := 0; i < treeDepth+1; i++ {
+	for i := 0; i < treeDepth; i++ {
 		nextLevelIndex := index + int(math.Pow(float64(3), float64(treeDepth-i)))
 		index_step := treeDepth - i
 
@@ -199,8 +199,41 @@ func (tree *MerkleTree) GetRoot() fr.Element {
 	return tree.Tree[MERKLE_ROOT_POS]
 }
 
-func (tree *MerkleTree) GetProof(index int) (*MerkleProof, error) {
+func (tree *MerkleTree) GetProof(nodeIndex int) (*MerkleProof, error) {
+	treeDepth := MAX_MERKLE_DEPTH
+
 	proof := &MerkleProof{}
+
+	numNodeThisLevel := nodeIndex
+
+	index := 0
+	for i := 0; i < MAX_MERKLE_DEPTH; i++ {
+		index_step := treeDepth - i
+
+		beginOffestThisLevel := (numNodeThisLevel / 3) * 3
+
+		proof.Path[i].Left = tree.Tree[index+beginOffestThisLevel]
+		proof.Path[i].Middle = tree.Tree[index+beginOffestThisLevel+1]
+		proof.Path[i].Right = tree.Tree[index+beginOffestThisLevel+2]
+
+		splited9ram := numNodeThisLevel % 9
+		if splited9ram == 0 || splited9ram == 1 || splited9ram == 2 {
+			proof.Path[i].Direction = 0
+		} else if splited9ram == 3 || splited9ram == 4 || splited9ram == 5 {
+			proof.Path[i].Direction = 1
+		} else if splited9ram == 6 || splited9ram == 7 || splited9ram == 8 {
+			proof.Path[i].Direction = 2
+		}
+
+		// fmt.Println("--------------------------------")
+		// fmt.Println("numNodeThisLevel", numNodeThisLevel)
+		fmt.Println("beginOffestThisLevel", beginOffestThisLevel)
+		// fmt.Println("index", index)
+		// fmt.Println("i", i)
+
+		numNodeThisLevel = numNodeThisLevel/3 + 1
+		index += int(math.Pow(float64(3), float64(index_step)))
+	}
 
 	return proof, nil
 }

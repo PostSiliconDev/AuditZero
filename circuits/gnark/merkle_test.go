@@ -1,7 +1,6 @@
 package circuits_test
 
 import (
-	"fmt"
 	circuits "hide-pay/circuits/gnark"
 	"testing"
 
@@ -98,7 +97,17 @@ func TestMerkleTree(t *testing.T) {
 	tree, err := circuits.BuildMerkleTree(commitments)
 	assert.NoError(t, err)
 
-	for k, v := range tree.Tree {
-		fmt.Println("index:", k, ",value:", v.Text(10))
-	}
+	treeRoot := tree.GetRoot()
+
+	proof, err := tree.GetProof(5)
+	assert.NoError(t, err)
+
+	// for i, v := range proof.Path {
+	// 	fmt.Println("index:", i, "direction:", v.Direction, ",value:", v.Left.Text(10), v.Middle.Text(10), v.Right.Text(10))
+	// }
+
+	root, err := proof.Verify()
+	assert.NoError(t, err)
+
+	assert.Equal(t, root, treeRoot)
 }
