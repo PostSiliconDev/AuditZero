@@ -10,7 +10,8 @@ import (
 type UTXOGadget struct {
 	AllAsset []frontend.Variable `gnark:"allAsset"`
 
-	Nullifier []NullifierGadget `gnark:"nullifier"`
+	Nullifier   []NullifierGadget   `gnark:"nullifier"`
+	MerkleProof []MerkleProofGadget `gnark:"merkleProof"`
 
 	Commitment []CommitmentGadget `gnark:"commitment"`
 
@@ -20,11 +21,18 @@ type UTXOGadget struct {
 	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
 }
 
-func NewUTXOGadget(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOGadget {
+func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOGadget {
+	// merkleProofs := make([]MerkleProofGadget, nullifierSize)
+
+	// for i := range merkleProofs {
+	// 	merkleProofs[i] = NewMerkleProofGadget(depth)
+	// }
+
 	return &UTXOGadget{
 		AllAsset: make([]frontend.Variable, allAssetSize),
 
-		Nullifier:                  make([]NullifierGadget, nullifierSize),
+		Nullifier: make([]NullifierGadget, nullifierSize),
+		// MerkleProof:                merkleProofs,
 		Commitment:                 make([]CommitmentGadget, commitmentSize),
 		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
 		EphemeralAuditSecretKey:    make([]frontend.Variable, commitmentSize),
@@ -36,6 +44,7 @@ type UTXOResultGadget struct {
 	Commitments     []frontend.Variable `gnark:"commitments,public"`
 	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
 	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
+	Root            frontend.Variable   `gnark:"root,public"`
 }
 
 func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadget {
@@ -150,9 +159,9 @@ type UTXOCircuit struct {
 	UTXOResultGadget
 }
 
-func NewUTXOCircuit(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOCircuit {
+func NewUTXOCircuit(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOCircuit {
 	return &UTXOCircuit{
-		UTXOGadget:       *NewUTXOGadget(allAssetSize, nullifierSize, commitmentSize),
+		UTXOGadget:       *NewUTXOGadget(allAssetSize, depth, nullifierSize, commitmentSize),
 		UTXOResultGadget: *NewUTXOResultGadget(nullifierSize, commitmentSize),
 	}
 }

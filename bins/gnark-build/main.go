@@ -9,6 +9,7 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
@@ -129,12 +130,34 @@ func main() {
 	nullifier2.Blinding = circuits.BigIntToFr(blinding2)
 	nullifier3.Blinding = circuits.BigIntToFr(blinding3)
 
+	depth := 10
+
+	merkleTree := builder.NewMerkleTree(depth, poseidon2.NewMerkleDamgardHasher())
+	elems := []fr.Element{
+		nullifier0.Commitment.Compute(),
+		nullifier1.Commitment.Compute(),
+		nullifier2.Commitment.Compute(),
+		nullifier3.Commitment.Compute(),
+	}
+	merkleTree.Build(elems)
+
+	merkleProof0 := merkleTree.GetProof(0)
+	merkleProof1 := merkleTree.GetProof(1)
+	merkleProof2 := merkleTree.GetProof(2)
+	merkleProof3 := merkleTree.GetProof(3)
+
 	utxo := &builder.UTXO{
 		Nullifier: []circuits.Nullifier{
 			nullifier0,
 			nullifier1,
 			nullifier2,
 			nullifier3,
+		},
+		MerkleProof: []builder.MerkleProof{
+			merkleProof0,
+			merkleProof1,
+			merkleProof2,
+			merkleProof3,
 		},
 		Commitment: []circuits.Commitment{
 			{
@@ -194,7 +217,7 @@ func main() {
 		panic("build public witness: " + err.Error())
 	}
 
-	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), len(utxo.Nullifier), len(utxo.Commitment))
+	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), depth, len(utxo.Nullifier), len(utxo.Commitment))
 
 	cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, utxoCircuit)
 	if err != nil {

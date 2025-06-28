@@ -12,7 +12,9 @@ import (
 )
 
 type UTXO struct {
-	Nullifier                  []circuits.Nullifier
+	Nullifier   []circuits.Nullifier
+	MerkleProof []MerkleProof
+
 	Commitment                 []circuits.Commitment
 	EphemeralReceiverSecretKey []big.Int
 	EphemeralAuditSecretKey    []big.Int
@@ -23,11 +25,13 @@ type UTXO struct {
 
 func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, error) {
 	nullifiers := make([]circuits.NullifierGadget, len(utxo.Nullifier))
+	merkleProofs := make([]circuits.MerkleProofGadget, len(utxo.MerkleProof))
 
 	commitments := make([]circuits.CommitmentGadget, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
+		merkleProofs[i] = *utxo.MerkleProof[i].ToGadget()
 	}
 
 	for i := range utxo.Commitment {
@@ -67,52 +71,6 @@ func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, 
 	}, nil
 }
 
-type UTXOResult struct {
-	Nullifiers  []fr.Element
-	Commitments []UTXOCommitment
-	AllAsset    []fr.Element
-	Root        fr.Element
-}
-
-type UTXOCommitment struct {
-	Commitment               fr.Element
-	OwnerMemo                [3]fr.Element
-	OwnerHMAC                fr.Element
-	OwnerEphemeralPublickKey twistededwardbn254.PointAffine
-	AuditMemo                [3]fr.Element
-	AuditHMAC                fr.Element
-	AuditEphemeralPublickKey twistededwardbn254.PointAffine
-}
-
-func (result *UTXOResult) ToGadget() *circuits.UTXOResultGadget {
-	nullifiers := make([]frontend.Variable, len(result.Nullifiers))
-	commitments := make([]frontend.Variable, len(result.Commitments))
-	ownerMemoHashes := make([]frontend.Variable, len(result.Commitments))
-	auditMemoHashes := make([]frontend.Variable, len(result.Commitments))
-	allAsset := make([]frontend.Variable, len(result.AllAsset))
-
-	for i := range result.Nullifiers {
-		nullifiers[i] = result.Nullifiers[i]
-	}
-
-	for i := range result.Commitments {
-		commitments[i] = result.Commitments[i].Commitment
-		ownerMemoHashes[i] = result.Commitments[i].OwnerHMAC
-		auditMemoHashes[i] = result.Commitments[i].AuditHMAC
-	}
-
-	for i := range result.AllAsset {
-		allAsset[i] = result.AllAsset[i]
-	}
-
-	return &circuits.UTXOResultGadget{
-		Nullifiers:      nullifiers,
-		Commitments:     commitments,
-		OwnerMemoHashes: ownerMemoHashes,
-		AuditMemoHashes: auditMemoHashes,
-	}
-}
-
 func addToAssetMapping(assetMapping map[fr.Element]*fr.Element, asset fr.Element, amount fr.Element) {
 	if _, ok := assetMapping[asset]; !ok {
 		assetMapping[asset] = &amount
@@ -140,6 +98,17 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
 
 		nullifiers[i] = utxoNullifier.Compute()
+
+		merkleProof := utxo.MerkleProof[i]
+		merkleRoot := merkleProof.Verify()
+
+		if currentRoot.IsZero() {
+			currentRoot = merkleRoot
+		} else {
+			if currentRoot.Cmp(&merkleRoot) != 0 {
+				return nil, fmt.Errorf("merkle root mismatch")
+			}
+		}
 	}
 
 	result := UTXOResult{
