@@ -10,8 +10,7 @@ import (
 type UTXOGadget struct {
 	AllAsset []frontend.Variable `gnark:"allAsset"`
 
-	Nullifier   []NullifierGadget   `gnark:"nullifier"`
-	MerkleProof []MerkleProofGadget `gnark:"merkleProof"`
+	Nullifier []NullifierGadget `gnark:"nullifier"`
 
 	Commitment []CommitmentGadget `gnark:"commitment"`
 
@@ -19,40 +18,23 @@ type UTXOGadget struct {
 	EphemeralAuditSecretKey    []frontend.Variable  `gnark:"ephemeralAuditSecretKey"`
 	ReceiverPublicKey          [2]frontend.Variable `gnark:"receiverPublicKey"`
 	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
+
+	// MerkleProofPath  []frontend.Variable `gnark:"merkleProofPath"`
+	// MerkleProofIndex []frontend.Variable `gnark:"merkleProofIndex"`
 }
 
 func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOGadget {
-	// merkleProofs := make([]MerkleProofGadget, nullifierSize)
-
-	// for i := range merkleProofs {
-	// 	merkleProofs[i] = NewMerkleProofGadget(depth)
-	// }
 
 	return &UTXOGadget{
 		AllAsset: make([]frontend.Variable, allAssetSize),
 
 		Nullifier: make([]NullifierGadget, nullifierSize),
-		// MerkleProof:                merkleProofs,
+		// MerkleProofPath:  make([]frontend.Variable, nullifierSize),
+		// MerkleProofIndex: make([]frontend.Variable, nullifierSize),
+
 		Commitment:                 make([]CommitmentGadget, commitmentSize),
 		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
 		EphemeralAuditSecretKey:    make([]frontend.Variable, commitmentSize),
-	}
-}
-
-type UTXOResultGadget struct {
-	Nullifiers      []frontend.Variable `gnark:"nullifiers,public"`
-	Commitments     []frontend.Variable `gnark:"commitments,public"`
-	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
-	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
-	Root            frontend.Variable   `gnark:"root,public"`
-}
-
-func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadget {
-	return &UTXOResultGadget{
-		Nullifiers:      make([]frontend.Variable, nullifierSize),
-		Commitments:     make([]frontend.Variable, commitmentSize),
-		OwnerMemoHashes: make([]frontend.Variable, commitmentSize),
-		AuditMemoHashes: make([]frontend.Variable, commitmentSize),
 	}
 }
 
@@ -152,41 +134,4 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		OwnerMemoHashes: ownerMemoHashes,
 		AuditMemoHashes: auditMemoHashes,
 	}, nil
-}
-
-type UTXOCircuit struct {
-	UTXOGadget
-	UTXOResultGadget
-}
-
-func NewUTXOCircuit(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOCircuit {
-	return &UTXOCircuit{
-		UTXOGadget:       *NewUTXOGadget(allAssetSize, depth, nullifierSize, commitmentSize),
-		UTXOResultGadget: *NewUTXOResultGadget(nullifierSize, commitmentSize),
-	}
-}
-
-func (circuit *UTXOCircuit) Define(api frontend.API) error {
-	utxoResult, err := circuit.UTXOGadget.BuildAndCheck(api)
-	if err != nil {
-		return fmt.Errorf("failed to build and check UTXO: %w", err)
-	}
-
-	for i := range circuit.UTXOResultGadget.Nullifiers {
-		api.AssertIsEqual(circuit.UTXOResultGadget.Nullifiers[i], utxoResult.Nullifiers[i])
-	}
-
-	for i := range circuit.UTXOResultGadget.Commitments {
-		api.AssertIsEqual(circuit.UTXOResultGadget.Commitments[i], utxoResult.Commitments[i])
-	}
-
-	for i := range circuit.UTXOResultGadget.OwnerMemoHashes {
-		api.AssertIsEqual(circuit.UTXOResultGadget.OwnerMemoHashes[i], utxoResult.OwnerMemoHashes[i])
-	}
-
-	for i := range circuit.UTXOResultGadget.AuditMemoHashes {
-		api.AssertIsEqual(circuit.UTXOResultGadget.AuditMemoHashes[i], utxoResult.AuditMemoHashes[i])
-	}
-
-	return nil
 }

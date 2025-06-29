@@ -137,7 +137,7 @@ func (mp *MerkleProof) Verify() fr.Element {
 }
 
 func (mp *MerkleProof) ToGadget() *circuits.MerkleProofGadget {
-	path := make([]frontend.Variable, mp.depth)
+	path := make([]frontend.Variable, len(mp.proof))
 
 	for i := range mp.proof {
 		path[i] = mp.proof[i]

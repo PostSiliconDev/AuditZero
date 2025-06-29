@@ -25,13 +25,18 @@ type UTXO struct {
 
 func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, error) {
 	nullifiers := make([]circuits.NullifierGadget, len(utxo.Nullifier))
-	merkleProofs := make([]circuits.MerkleProofGadget, len(utxo.MerkleProof))
+	merkleProofPath := make([]frontend.Variable, 0)
+	merkleProofIndex := make([]frontend.Variable, len(utxo.MerkleProof))
 
 	commitments := make([]circuits.CommitmentGadget, len(utxo.Commitment))
 
 	for i := range utxo.Nullifier {
 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
-		merkleProofs[i] = *utxo.MerkleProof[i].ToGadget()
+
+		merkleProof := utxo.MerkleProof[i].ToGadget()
+
+		merkleProofPath = append(merkleProofPath, merkleProof.Path...)
+		merkleProofIndex[i] = merkleProof.Leaf
 	}
 
 	for i := range utxo.Commitment {
@@ -60,14 +65,15 @@ func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, 
 	}
 
 	return &circuits.UTXOGadget{
-		AllAsset:  allAsset,
-		Nullifier: nullifiers,
-		// MerkleProof:                merkleProofs,
+		AllAsset:                   allAsset,
+		Nullifier:                  nullifiers,
 		Commitment:                 commitments,
 		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
 		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
 		ReceiverPublicKey:          receiverPublicKey,
 		AuditPublicKey:             auditPublicKey,
+		// MerkleProofPath:            merkleProofPath,
+		// MerkleProofIndex:           merkleProofIndex,
 	}, nil
 }
 
@@ -90,10 +96,10 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 	for i := range utxo.Nullifier {
 		utxoNullifier := utxo.Nullifier[i]
 
-		zero := fr.NewElement(0)
-		if utxoNullifier.Amount.Cmp(&zero) != 1 {
-			return nil, fmt.Errorf("nullifier must be greater than 0")
-		}
+		// zero := fr.NewElement(0)
+		// if utxoNullifier.Amount.Cmp(&zero) != 1 {
+		// 	return nil, fmt.Errorf("nullifier must be greater than 0")
+		// }
 
 		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
 
@@ -114,7 +120,6 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 	result := UTXOResult{
 		Nullifiers:  nullifiers,
 		Commitments: commitments,
-		AllAsset:    make([]fr.Element, len(allAssetInput)),
 		Root:        currentRoot,
 	}
 
