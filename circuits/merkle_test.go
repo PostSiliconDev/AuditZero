@@ -12,6 +12,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
+	"github.com/stretchr/testify/assert"
 )
 
 type MerkleProofGadgetCircuit struct {
@@ -49,11 +50,13 @@ func TestMerkleProofGadget(t *testing.T) {
 
 	mt := builder.NewMerkleTree(depth, hasher)
 	mt.Build(elems)
+	merkleRoot := mt.GetRoot()
 
 	proof := mt.GetProof(5)
 	proof.Verify()
 
 	root := mt.GetRoot()
+	assert.Equal(t, root, merkleRoot)
 
 	witness := MerkleProofGadgetCircuit{
 		MerkleProofGadget: *proof.ToGadget(),

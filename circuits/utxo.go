@@ -2,6 +2,7 @@ package circuits
 
 import (
 	"fmt"
+	"hide-pay/utils"
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/rangecheck"
@@ -19,8 +20,8 @@ type UTXOGadget struct {
 	ReceiverPublicKey          [2]frontend.Variable `gnark:"receiverPublicKey"`
 	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
 
-	// MerkleProofPath  []frontend.Variable `gnark:"merkleProofPath"`
-	// MerkleProofIndex []frontend.Variable `gnark:"merkleProofIndex"`
+	MerkleProofPath  []frontend.Variable `gnark:"merkleProofPath"`
+	MerkleProofIndex []frontend.Variable `gnark:"merkleProofIndex"`
 }
 
 func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOGadget {
@@ -28,9 +29,9 @@ func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSiz
 	return &UTXOGadget{
 		AllAsset: make([]frontend.Variable, allAssetSize),
 
-		Nullifier: make([]NullifierGadget, nullifierSize),
-		// MerkleProofPath:  make([]frontend.Variable, nullifierSize),
-		// MerkleProofIndex: make([]frontend.Variable, nullifierSize),
+		Nullifier:        make([]NullifierGadget, nullifierSize),
+		MerkleProofPath:  make([]frontend.Variable, nullifierSize*depth),
+		MerkleProofIndex: make([]frontend.Variable, nullifierSize),
 
 		Commitment:                 make([]CommitmentGadget, commitmentSize),
 		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
@@ -53,13 +54,28 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		inputAmounts[i] = 0
 	}
 
+	merkleRoot := make([]frontend.Variable, len(gadget.Nullifier))
+
+	depth := len(gadget.MerkleProofPath) / len(gadget.Nullifier)
+
 	for i := range gadget.Nullifier {
 		gadgetNullifier := gadget.Nullifier[i]
 
 		rangerChecker := rangecheck.New(api)
 		rangerChecker.Check(gadgetNullifier.Amount, 253)
 
+		hasher, err := utils.NewPoseidonHasher(api)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
+		}
+
 		// TODO: Check nullifier is in merkle tree
+		merkleProof := MerkleProofGadget{
+			Path: gadget.MerkleProofPath[i*depth : (i+1)*depth],
+			Leaf: gadget.MerkleProofIndex[i],
+		}
+
+		merkleRoot[i] = merkleProof.VerifyProof(api, hasher)
 
 		for j := range gadget.AllAsset {
 			diff := api.Sub(gadget.AllAsset[j], gadgetNullifier.Asset)
@@ -72,6 +88,10 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 			return nil, fmt.Errorf("failed to compute nullifier: %w", err)
 		}
 		nullifiers[i] = nullifier
+	}
+
+	for i := range merkleRoot {
+		api.AssertIsEqual(merkleRoot[i], merkleRoot[0])
 	}
 
 	ownerMemoHashes := make([]frontend.Variable, len(gadget.EphemeralReceiverSecretKey))
@@ -133,5 +153,6 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		Commitments:     commitments,
 		OwnerMemoHashes: ownerMemoHashes,
 		AuditMemoHashes: auditMemoHashes,
+		MerkleRoot:      merkleRoot[0],
 	}, nil
 }

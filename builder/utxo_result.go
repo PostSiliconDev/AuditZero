@@ -51,5 +51,6 @@ func (result *UTXOResult) ToGadget() *circuits.UTXOResultGadget {
 		Commitments:     commitments,
 		OwnerMemoHashes: ownerMemoHashes,
 		AuditMemoHashes: auditMemoHashes,
+		MerkleRoot:      result.Root,
 	}
 }

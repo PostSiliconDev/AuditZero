@@ -72,8 +72,8 @@ func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, 
 		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
 		ReceiverPublicKey:          receiverPublicKey,
 		AuditPublicKey:             auditPublicKey,
-		// MerkleProofPath:            merkleProofPath,
-		// MerkleProofIndex:           merkleProofIndex,
+		MerkleProofPath:            merkleProofPath,
+		MerkleProofIndex:           merkleProofIndex,
 	}, nil
 }
 

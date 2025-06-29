@@ -40,7 +40,7 @@ func (circuit *UTXOCircuit) Define(api frontend.API) error {
 		api.AssertIsEqual(circuit.Result.AuditMemoHashes[i], utxoResult.AuditMemoHashes[i])
 	}
 
-	// api.AssertIsEqual(circuit.UTXOResultGadget.Root, utxoResult.Root)
+	api.AssertIsEqual(circuit.Result.MerkleRoot, utxoResult.MerkleRoot)
 
 	return nil
 }

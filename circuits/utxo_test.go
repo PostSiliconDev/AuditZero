@@ -45,9 +45,16 @@ func TestUTXO_ToGadget(t *testing.T) {
 		nullifier2.Commitment.Compute(),
 	}
 	merkleTree.Build(elems)
+	root := merkleTree.GetRoot()
 
 	merkleProof1 := merkleTree.GetProof(0)
 	merkleProof2 := merkleTree.GetProof(1)
+
+	root1 := merkleProof1.Verify()
+	root2 := merkleProof2.Verify()
+
+	assert.Equal(t, root, root1)
+	assert.Equal(t, root, root2)
 
 	utxo := &builder.UTXO{
 		Nullifier: []circuits.Nullifier{

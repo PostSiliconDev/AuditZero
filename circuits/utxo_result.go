@@ -7,6 +7,7 @@ type UTXOResultGadget struct {
 	Commitments     []frontend.Variable `gnark:"commitments,public"`
 	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
 	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
+	MerkleRoot      frontend.Variable   `gnark:"merkleRoot,public"`
 }
 
 func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadget {

@@ -130,7 +130,7 @@ func main() {
 	nullifier2.Blinding = circuits.BigIntToFr(blinding2)
 	nullifier3.Blinding = circuits.BigIntToFr(blinding3)
 
-	depth := 10
+	depth := 34
 
 	merkleTree := builder.NewMerkleTree(depth, poseidon2.NewMerkleDamgardHasher())
 	elems := []fr.Element{
