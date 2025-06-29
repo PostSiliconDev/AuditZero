@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"hide-pay/builder"
 	"hide-pay/circuits"
@@ -14,7 +13,6 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/frontend/cs/r1cs"
 )
 
 func main() {
@@ -219,53 +217,41 @@ func main() {
 		panic("build public witness: " + err.Error())
 	}
 
-	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), depth, len(utxo.Nullifier), len(utxo.Commitment))
-
-	cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, utxoCircuit)
+	fmt.Println("start read cs")
+	csbuf, err := os.Open("./cs.dat")
 	if err != nil {
-		panic("compile: " + err.Error())
+		panic("open cs: " + err.Error())
 	}
+	cs := groth16.NewCS(ecc.BN254)
+	cs.ReadFrom(csbuf)
 
-	var csBuf bytes.Buffer
-	_, err = cs.WriteTo(&csBuf)
+	fmt.Println("start read pk")
+	pkBuf, err := os.Open("./pk.dat")
 	if err != nil {
-		panic("write cs: " + err.Error())
+		panic("open pk: " + err.Error())
 	}
-	os.WriteFile("./target/cs.dat", csBuf.Bytes(), 0644)
+	pk := groth16.NewProvingKey(ecc.BN254)
+	pk.ReadFrom(pkBuf)
 
-	pk, vk, err := groth16.Setup(cs)
+	fmt.Println("start read vk")
+	vkBuf, err := os.Open("./vk.dat")
 	if err != nil {
-		panic("setup: " + err.Error())
+		panic("open vk: " + err.Error())
 	}
+	vk := groth16.NewVerifyingKey(ecc.BN254)
+	vk.ReadFrom(vkBuf)
 
-	var pkBuf bytes.Buffer
-	_, err = pk.WriteRawTo(&pkBuf)
-	if err != nil {
-		panic("write pk: " + err.Error())
-	}
-
-	os.WriteFile("./target/pk.dat", pkBuf.Bytes(), 0644)
-
-	var vkBuf bytes.Buffer
-	_, err = vk.WriteRawTo(&vkBuf)
-	if err != nil {
-		panic("write vk: " + err.Error())
-	}
-
-	os.WriteFile("./target/vk.dat", vkBuf.Bytes(), 0644)
-
-	start := time.Now()
-
+	fmt.Println("start prove")
+	t0 := time.Now()
 	proof, err := groth16.Prove(cs, pk, witness)
 	if err != nil {
 		panic("prove: " + err.Error())
 	}
-
-	elapsed := time.Since(start)
-	fmt.Println("Prove time:", elapsed)
+	t1 := time.Now()
+	fmt.Println("prove time", t1.Sub(t0))
 
 	err = groth16.Verify(proof, vk, publicWitness)
 	if err != nil {
-		panic(err)
+		panic("verify: " + err.Error())
 	}
 }

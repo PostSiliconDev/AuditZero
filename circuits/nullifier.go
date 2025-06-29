@@ -2,6 +2,7 @@ package circuits
 
 import (
 	"fmt"
+	"hide-pay/utils"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
@@ -14,7 +15,7 @@ type NullifierGadget struct {
 }
 
 func (gadget *NullifierGadget) Compute(api frontend.API) (frontend.Variable, error) {
-	hasher, err := NewPoseidonHasher(api)
+	hasher, err := utils.NewPoseidonHasher(api)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
 	}

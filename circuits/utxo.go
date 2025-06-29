@@ -2,6 +2,7 @@ package circuits
 
 import (
 	"fmt"
+	"hide-pay/utils"
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/rangecheck"
@@ -18,32 +19,23 @@ type UTXOGadget struct {
 	EphemeralAuditSecretKey    []frontend.Variable  `gnark:"ephemeralAuditSecretKey"`
 	ReceiverPublicKey          [2]frontend.Variable `gnark:"receiverPublicKey"`
 	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
+
+	MerkleProofPath  []frontend.Variable `gnark:"merkleProofPath"`
+	MerkleProofIndex []frontend.Variable `gnark:"merkleProofIndex"`
 }
 
-func NewUTXOGadget(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOGadget {
+func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOGadget {
+
 	return &UTXOGadget{
 		AllAsset: make([]frontend.Variable, allAssetSize),
 
-		Nullifier:                  make([]NullifierGadget, nullifierSize),
+		Nullifier:        make([]NullifierGadget, nullifierSize),
+		MerkleProofPath:  make([]frontend.Variable, nullifierSize*depth),
+		MerkleProofIndex: make([]frontend.Variable, nullifierSize),
+
 		Commitment:                 make([]CommitmentGadget, commitmentSize),
 		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
 		EphemeralAuditSecretKey:    make([]frontend.Variable, commitmentSize),
-	}
-}
-
-type UTXOResultGadget struct {
-	Nullifiers      []frontend.Variable `gnark:"nullifiers,public"`
-	Commitments     []frontend.Variable `gnark:"commitments,public"`
-	OwnerMemoHashes []frontend.Variable `gnark:"ownerMemoHashes,public"`
-	AuditMemoHashes []frontend.Variable `gnark:"auditMemoHashes,public"`
-}
-
-func NewUTXOResultGadget(nullifierSize int, commitmentSize int) *UTXOResultGadget {
-	return &UTXOResultGadget{
-		Nullifiers:      make([]frontend.Variable, nullifierSize),
-		Commitments:     make([]frontend.Variable, commitmentSize),
-		OwnerMemoHashes: make([]frontend.Variable, commitmentSize),
-		AuditMemoHashes: make([]frontend.Variable, commitmentSize),
 	}
 }
 
@@ -62,13 +54,28 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		inputAmounts[i] = 0
 	}
 
+	merkleRoot := make([]frontend.Variable, len(gadget.Nullifier))
+
+	depth := len(gadget.MerkleProofPath) / len(gadget.Nullifier)
+
 	for i := range gadget.Nullifier {
 		gadgetNullifier := gadget.Nullifier[i]
 
 		rangerChecker := rangecheck.New(api)
 		rangerChecker.Check(gadgetNullifier.Amount, 253)
 
+		hasher, err := utils.NewPoseidonHasher(api)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
+		}
+
 		// TODO: Check nullifier is in merkle tree
+		merkleProof := MerkleProofGadget{
+			Path: gadget.MerkleProofPath[i*depth : (i+1)*depth],
+			Leaf: gadget.MerkleProofIndex[i],
+		}
+
+		merkleRoot[i] = merkleProof.VerifyProof(api, hasher)
 
 		for j := range gadget.AllAsset {
 			diff := api.Sub(gadget.AllAsset[j], gadgetNullifier.Asset)
@@ -81,6 +88,10 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 			return nil, fmt.Errorf("failed to compute nullifier: %w", err)
 		}
 		nullifiers[i] = nullifier
+	}
+
+	for i := range merkleRoot {
+		api.AssertIsEqual(merkleRoot[i], merkleRoot[0])
 	}
 
 	ownerMemoHashes := make([]frontend.Variable, len(gadget.EphemeralReceiverSecretKey))
@@ -142,42 +153,6 @@ func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, er
 		Commitments:     commitments,
 		OwnerMemoHashes: ownerMemoHashes,
 		AuditMemoHashes: auditMemoHashes,
+		MerkleRoot:      merkleRoot[0],
 	}, nil
-}
-
-type UTXOCircuit struct {
-	UTXOGadget
-	UTXOResultGadget
-}
-
-func NewUTXOCircuit(allAssetSize int, nullifierSize int, commitmentSize int) *UTXOCircuit {
-	return &UTXOCircuit{
-		UTXOGadget:       *NewUTXOGadget(allAssetSize, nullifierSize, commitmentSize),
-		UTXOResultGadget: *NewUTXOResultGadget(nullifierSize, commitmentSize),
-	}
-}
-
-func (circuit *UTXOCircuit) Define(api frontend.API) error {
-	utxoResult, err := circuit.UTXOGadget.BuildAndCheck(api)
-	if err != nil {
-		return fmt.Errorf("failed to build and check UTXO: %w", err)
-	}
-
-	for i := range circuit.UTXOResultGadget.Nullifiers {
-		api.AssertIsEqual(circuit.UTXOResultGadget.Nullifiers[i], utxoResult.Nullifiers[i])
-	}
-
-	for i := range circuit.UTXOResultGadget.Commitments {
-		api.AssertIsEqual(circuit.UTXOResultGadget.Commitments[i], utxoResult.Commitments[i])
-	}
-
-	for i := range circuit.UTXOResultGadget.OwnerMemoHashes {
-		api.AssertIsEqual(circuit.UTXOResultGadget.OwnerMemoHashes[i], utxoResult.OwnerMemoHashes[i])
-	}
-
-	for i := range circuit.UTXOResultGadget.AuditMemoHashes {
-		api.AssertIsEqual(circuit.UTXOResultGadget.AuditMemoHashes[i], utxoResult.AuditMemoHashes[i])
-	}
-
-	return nil
 }

@@ -1,4 +1,4 @@
-package circuits
+package utils
 
 import (
 	poseidonbn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"

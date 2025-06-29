@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,10 +37,27 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 		PrivateKey: fr.NewElement(2),
 	}
 
+	nullifier1_commit := nullifier1.Commitment.Compute()
+	nullifier2_commit := nullifier2.Commitment.Compute()
+
+	merkleTree := builder.NewMerkleTree(10, poseidon2.NewMerkleDamgardHasher())
+	elems := []fr.Element{
+		nullifier1_commit,
+		nullifier2_commit,
+	}
+	merkleTree.Build(elems)
+
+	merkleProof1 := merkleTree.GetProof(0)
+	merkleProof2 := merkleTree.GetProof(1)
+
 	utxo := &builder.UTXO{
 		Nullifier: []circuits.Nullifier{
 			nullifier1,
 			nullifier2,
+		},
+		MerkleProof: []builder.MerkleProof{
+			merkleProof1,
+			merkleProof2,
 		},
 		Commitment: []circuits.Commitment{
 			{
