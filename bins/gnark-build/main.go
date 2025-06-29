@@ -204,7 +204,7 @@ func main() {
 
 	assignment, err := builder.NewUTXOCircuitWitness(utxo, result)
 	if err != nil {
-		panic(err)
+		panic("build assignment: " + err.Error())
 	}
 
 	witness, err := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
@@ -221,19 +221,19 @@ func main() {
 
 	cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, utxoCircuit)
 	if err != nil {
-		panic(err)
+		panic("compile: " + err.Error())
 	}
 
 	pk, vk, err := groth16.Setup(cs)
 	if err != nil {
-		panic(err)
+		panic("setup: " + err.Error())
 	}
 
 	start := time.Now()
 
 	proof, err := groth16.Prove(cs, pk, witness)
 	if err != nil {
-		panic(err)
+		panic("prove: " + err.Error())
 	}
 
 	elapsed := time.Since(start)

@@ -206,7 +206,7 @@ func NewUTXOCircuitWitness(utxo *UTXO, utxoResult *UTXOResult) (*circuits.UTXOCi
 	}
 
 	return &circuits.UTXOCircuit{
-		UTXOGadget:       *utxoGadget,
-		UTXOResultGadget: *utxoResult.ToGadget(),
+		UTXO:   *utxoGadget,
+		Result: *utxoResult.ToGadget(),
 	}, nil
 }
