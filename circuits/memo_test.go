@@ -58,7 +58,7 @@ func TestMemo_ToCircuit(t *testing.T) {
 		PublicKey: receiverPublicKey,
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),

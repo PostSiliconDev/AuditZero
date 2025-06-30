@@ -2,7 +2,6 @@ package builder_test
 
 import (
 	"hide-pay/builder"
-	"hide-pay/circuits"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -12,7 +11,7 @@ import (
 func TestNullifier_Compute(t *testing.T) {
 	// Test basic nullifier computation
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -32,7 +31,7 @@ func TestNullifier_Compute(t *testing.T) {
 func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 	// Test that different inputs produce different nullifiers
 	base := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -42,7 +41,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 
 	// Different asset
 	nullifier1 := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(54321),
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
@@ -52,7 +51,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 
 	// Different amount
 	nullifier2 := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    base.Asset,
 			Amount:   fr.NewElement(98765),
 			Blinding: base.Blinding,
@@ -62,7 +61,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 
 	// Different blinding
 	nullifier3 := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    base.Asset,
 			Amount:   base.Amount,
 			Blinding: fr.NewElement(33333),
@@ -72,7 +71,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 
 	// Different private key
 	nullifier4 := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    base.Asset,
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
@@ -102,7 +101,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 func TestNullifier_Compute_Deterministic(t *testing.T) {
 	// Test that same inputs produce same nullifier (deterministic)
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -122,7 +121,7 @@ func TestNullifier_Compute_Deterministic(t *testing.T) {
 func TestNullifier_Compute_ZeroValues(t *testing.T) {
 	// Test zero value inputs
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(0),
 			Amount:   fr.NewElement(0),
 			Blinding: fr.NewElement(0),
@@ -137,7 +136,7 @@ func TestNullifier_Compute_ZeroValues(t *testing.T) {
 func TestNullifier_Compute_LargeValues(t *testing.T) {
 	// Test large values
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(0xFFFFFFFFFFFFFFFF),
 			Amount:   fr.NewElement(0xFFFFFFFFFFFFFFFF),
 			Blinding: fr.NewElement(0xFFFFFFFFFFFFFFFF),
@@ -152,7 +151,7 @@ func TestNullifier_Compute_LargeValues(t *testing.T) {
 func TestNullifier_ToWitness(t *testing.T) {
 	// Test conversion to circuit
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -174,7 +173,7 @@ func TestNullifier_ToWitness(t *testing.T) {
 func TestNullifier_ToWitness_Consistency(t *testing.T) {
 	// Test consistency of multiple conversions
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -201,7 +200,7 @@ func TestNullifier_ToWitness_Consistency(t *testing.T) {
 func TestNullifier_ToCommitment(t *testing.T) {
 	// Test conversion to commitment
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -221,7 +220,7 @@ func TestNullifier_ToCommitment(t *testing.T) {
 func TestNullifier_Uniqueness(t *testing.T) {
 	// Test that nullifiers are unique for different inputs
 	base := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -233,7 +232,7 @@ func TestNullifier_Uniqueness(t *testing.T) {
 
 	// Test with same inputs but different private key (should produce different nullifier)
 	nullifierSameInputs := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    base.Asset,
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
@@ -246,7 +245,7 @@ func TestNullifier_Uniqueness(t *testing.T) {
 
 	// Test with same private key but different other inputs
 	nullifierSameKey := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(54321), // Different asset
 			Amount:   base.Amount,
 			Blinding: base.Blinding,

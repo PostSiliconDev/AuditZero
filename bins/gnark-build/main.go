@@ -114,7 +114,7 @@ func main() {
 	}
 
 	nullifier := builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
 			Blinding: circuits.BigIntToFr(blinding0),
@@ -161,7 +161,7 @@ func main() {
 			merkleProof2,
 			merkleProof3,
 		},
-		Commitment: []circuits.Commitment{
+		Commitment: []builder.Commitment{
 			{
 				Asset:    fr.NewElement(1),
 				Amount:   fr.NewElement(2),

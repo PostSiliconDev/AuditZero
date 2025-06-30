@@ -22,7 +22,7 @@ func TestUTXO_ToGadget(t *testing.T) {
 	auditPublicKey := utils.BuildPublicKey(*auditSecretKey)
 
 	nullifier1 := builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
 			Blinding: fr.NewElement(3),
@@ -30,7 +30,7 @@ func TestUTXO_ToGadget(t *testing.T) {
 	}
 
 	nullifier2 := builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
 			Blinding: fr.NewElement(4),
@@ -65,7 +65,7 @@ func TestUTXO_ToGadget(t *testing.T) {
 			merkleProof1,
 			merkleProof2,
 		},
-		Commitment: []circuits.Commitment{
+		Commitment: []builder.Commitment{
 			{
 				Asset:    fr.NewElement(1),
 				Amount:   fr.NewElement(2),

@@ -15,7 +15,7 @@ type UTXO struct {
 	Nullifier   []Nullifier
 	MerkleProof []MerkleProof
 
-	Commitment                 []circuits.Commitment
+	Commitment                 []Commitment
 	EphemeralReceiverSecretKey []big.Int
 	EphemeralAuditSecretKey    []big.Int
 

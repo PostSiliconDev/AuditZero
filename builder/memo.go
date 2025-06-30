@@ -22,7 +22,7 @@ func (memo *Memo) ToGadget() *circuits.MemoGadget {
 	}
 }
 
-func (memo *Memo) Encrypt(commitment circuits.Commitment) (*twistededwardbn254.PointAffine, []fr.Element, error) {
+func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffine, []fr.Element, error) {
 	ecdh := ECDH{
 		PublicKey: memo.PublicKey,
 		SecretKey: memo.SecretKey,
@@ -56,7 +56,7 @@ func (memo *Memo) Encrypt(commitment circuits.Commitment) (*twistededwardbn254.P
 	return ephemeralPublicKey, ciphertext, nil
 }
 
-func (memo *Memo) Decrypt(ciphertext []fr.Element) (*circuits.Commitment, error) {
+func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
 	ecdh := ECDH{
 		PublicKey: memo.PublicKey,
 		SecretKey: memo.SecretKey,
@@ -78,7 +78,7 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*circuits.Commitment, error)
 		return nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
 
-	return &circuits.Commitment{
+	return &Commitment{
 		Asset:    plaintext[0],
 		Amount:   plaintext[1],
 		Blinding: plaintext[2],

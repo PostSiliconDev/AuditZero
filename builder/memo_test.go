@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"hide-pay/builder"
-	"hide-pay/circuits"
 	"hide-pay/utils"
 )
 
@@ -20,7 +19,7 @@ func TestMemo_Encrypt(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -44,13 +43,13 @@ func TestMemo_Encrypt_DifferentInputs(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment1 := &circuits.Commitment{
+	commitment1 := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
 	}
 
-	commitment2 := &circuits.Commitment{
+	commitment2 := &builder.Commitment{
 		Asset:    fr.NewElement(54321), // Different asset
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -73,7 +72,7 @@ func TestMemo_Encrypt_Deterministic(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -101,7 +100,7 @@ func TestMemo_Decrypt(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	originalCommitment := &circuits.Commitment{
+	originalCommitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -183,7 +182,7 @@ func TestMemo_EncryptDecrypt_RoundTrip(t *testing.T) {
 				PublicKey: utils.BuildPublicKey(tc.secretKey),
 			}
 
-			originalCommitment := &circuits.Commitment{
+			originalCommitment := &builder.Commitment{
 				Asset:    tc.asset,
 				Amount:   tc.amount,
 				Blinding: tc.blinding,
@@ -217,7 +216,7 @@ func TestMemo_Decrypt_WrongKey(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(99999)),
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -276,7 +275,7 @@ func TestMemo_EdgeCases(t *testing.T) {
 				PublicKey: utils.BuildPublicKey(tc.receiverSecretKey),
 			}
 
-			commitment := &circuits.Commitment{
+			commitment := &builder.Commitment{
 				Asset:    tc.asset,
 				Amount:   tc.amount,
 				Blinding: tc.blinding,
@@ -307,7 +306,7 @@ func TestMemo_Consistency(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -355,7 +354,7 @@ func TestMemo_LargeSecretKey(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*largeKey),
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),
@@ -389,7 +388,7 @@ func TestMemo_Exchange_Encrypt_Decrypt(t *testing.T) {
 		PublicKey: receiverPublicKey,
 	}
 
-	commitment := &circuits.Commitment{
+	commitment := &builder.Commitment{
 		Asset:    fr.NewElement(12345),
 		Amount:   fr.NewElement(67890),
 		Blinding: fr.NewElement(11111),

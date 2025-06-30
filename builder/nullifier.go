@@ -9,7 +9,7 @@ import (
 )
 
 type Nullifier struct {
-	circuits.Commitment
+	Commitment
 	PrivateKey fr.Element
 }
 
@@ -44,8 +44,8 @@ func (nullifier *Nullifier) Compute() fr.Element {
 	return res
 }
 
-func (nullifier *Nullifier) ToCommitment() *circuits.Commitment {
-	return &circuits.Commitment{
+func (nullifier *Nullifier) ToCommitment() *Commitment {
+	return &Commitment{
 		Asset:    nullifier.Asset,
 		Amount:   nullifier.Amount,
 		Blinding: nullifier.Blinding,

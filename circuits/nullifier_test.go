@@ -35,7 +35,7 @@ func (circuit *NullifierCircuit) Define(api frontend.API) error {
 func TestNullifier_Circuit_Verification(t *testing.T) {
 	// Test nullifier circuit verification
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -63,7 +63,7 @@ func TestNullifier_Circuit_Verification(t *testing.T) {
 func TestNullifier_Circuit_InvalidWitness(t *testing.T) {
 	// Test circuit verification with invalid witness
 	nullifier := &builder.Nullifier{
-		Commitment: circuits.Commitment{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(12345),
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
@@ -106,7 +106,7 @@ func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			nullifier := &builder.Nullifier{
-				Commitment: circuits.Commitment{
+				Commitment: builder.Commitment{
 					Asset:    fr.NewElement(tc.asset),
 					Amount:   fr.NewElement(tc.amount),
 					Blinding: fr.NewElement(tc.blinding),
@@ -149,7 +149,7 @@ func TestNullifier_Compute_EdgeCases(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			nullifier := &builder.Nullifier{
-				Commitment: circuits.Commitment{
+				Commitment: builder.Commitment{
 					Asset:    fr.NewElement(tc.asset),
 					Amount:   fr.NewElement(tc.amount),
 					Blinding: fr.NewElement(tc.blinding),
