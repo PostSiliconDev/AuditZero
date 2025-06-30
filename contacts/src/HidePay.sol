@@ -44,9 +44,9 @@ contract HidePay is CommitmentStorage, NullifierStorage {
 
         updateMerkleTree(merkleUpdater, merkleUpdaterProof);
 
-        // TODO: verify transactionsProofs
-
         for (uint256 i = 0; i < transactions.length; i++) {
+            // TODO: verify transactionsProofs
+
             for (uint256 j = 0; j < transactions[i].nullifier.length; j++) {
                 addNullifier(transactions[i].nullifier[j]);
             }
