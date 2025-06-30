@@ -19,7 +19,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
 	auditPublicKey := utils.BuildPublicKey(*auditSecretKey)
 
-	nullifier1 := circuits.Nullifier{
+	nullifier1 := builder.Nullifier{
 		Commitment: circuits.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
@@ -28,7 +28,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 		PrivateKey: fr.NewElement(1),
 	}
 
-	nullifier2 := circuits.Nullifier{
+	nullifier2 := builder.Nullifier{
 		Commitment: circuits.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
@@ -51,7 +51,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	merkleProof2 := merkleTree.GetProof(1)
 
 	utxo := &builder.UTXO{
-		Nullifier: []circuits.Nullifier{
+		Nullifier: []builder.Nullifier{
 			nullifier1,
 			nullifier2,
 		},

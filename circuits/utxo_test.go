@@ -21,7 +21,7 @@ func TestUTXO_ToGadget(t *testing.T) {
 	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
 	auditPublicKey := utils.BuildPublicKey(*auditSecretKey)
 
-	nullifier1 := circuits.Nullifier{
+	nullifier1 := builder.Nullifier{
 		Commitment: circuits.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
@@ -29,7 +29,7 @@ func TestUTXO_ToGadget(t *testing.T) {
 		},
 	}
 
-	nullifier2 := circuits.Nullifier{
+	nullifier2 := builder.Nullifier{
 		Commitment: circuits.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
@@ -57,7 +57,7 @@ func TestUTXO_ToGadget(t *testing.T) {
 	assert.Equal(t, root, root2)
 
 	utxo := &builder.UTXO{
-		Nullifier: []circuits.Nullifier{
+		Nullifier: []builder.Nullifier{
 			nullifier1,
 			nullifier2,
 		},

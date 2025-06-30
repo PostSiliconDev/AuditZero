@@ -12,7 +12,7 @@ import (
 )
 
 type UTXO struct {
-	Nullifier   []circuits.Nullifier
+	Nullifier   []Nullifier
 	MerkleProof []MerkleProof
 
 	Commitment                 []circuits.Commitment
