@@ -30,7 +30,7 @@ func (memo *Memo) Encrypt(commitment circuits.Commitment) (*twistededwardbn254.P
 
 	sharedKey := ecdh.Compute()
 
-	streamCipher := circuits.StreamCipher{
+	streamCipher := StreamCipher{
 		Key: [2]fr.Element{sharedKey.X, sharedKey.Y},
 	}
 
@@ -64,7 +64,7 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*circuits.Commitment, error)
 
 	sharedKey := ecdh.Compute()
 
-	streamCipher := circuits.StreamCipher{
+	streamCipher := StreamCipher{
 		Key: [2]fr.Element{sharedKey.X, sharedKey.Y},
 	}
 
