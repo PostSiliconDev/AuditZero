@@ -89,7 +89,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	for i := range result.Commitments {
 		commitment := result.Commitments[i]
 
-		memo1 := circuits.Memo{
+		memo1 := builder.Memo{
 			SecretKey: *receiverSecretKey,
 			PublicKey: commitment.OwnerEphemeralPublickKey,
 		}
@@ -107,7 +107,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 		assert.Equal(t, decryptedOwnerMemo.Amount, utxo.Commitment[i].Amount)
 		assert.Equal(t, decryptedOwnerMemo.Blinding, utxo.Commitment[i].Blinding)
 
-		memo2 := circuits.Memo{
+		memo2 := builder.Memo{
 			SecretKey: *auditSecretKey,
 			PublicKey: commitment.AuditEphemeralPublickKey,
 		}
