@@ -113,8 +113,8 @@ func main() {
 		panic(err)
 	}
 
-	nullifier := circuits.Nullifier{
-		Commitment: circuits.Commitment{
+	nullifier := builder.Nullifier{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
 			Blinding: circuits.BigIntToFr(blinding0),
@@ -149,7 +149,7 @@ func main() {
 	merkleProof3 := merkleTree.GetProof(3)
 
 	utxo := &builder.UTXO{
-		Nullifier: []circuits.Nullifier{
+		Nullifier: []builder.Nullifier{
 			nullifier0,
 			nullifier1,
 			nullifier2,
@@ -161,7 +161,7 @@ func main() {
 			merkleProof2,
 			merkleProof3,
 		},
-		Commitment: []circuits.Commitment{
+		Commitment: []builder.Commitment{
 			{
 				Asset:    fr.NewElement(1),
 				Amount:   fr.NewElement(2),

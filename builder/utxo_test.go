@@ -2,7 +2,6 @@ package builder_test
 
 import (
 	"hide-pay/builder"
-	"hide-pay/circuits"
 	"hide-pay/utils"
 	"math/big"
 	"testing"
@@ -19,8 +18,8 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
 	auditPublicKey := utils.BuildPublicKey(*auditSecretKey)
 
-	nullifier1 := circuits.Nullifier{
-		Commitment: circuits.Commitment{
+	nullifier1 := builder.Nullifier{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
 			Blinding: fr.NewElement(3),
@@ -28,8 +27,8 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 		PrivateKey: fr.NewElement(1),
 	}
 
-	nullifier2 := circuits.Nullifier{
-		Commitment: circuits.Commitment{
+	nullifier2 := builder.Nullifier{
+		Commitment: builder.Commitment{
 			Asset:    fr.NewElement(1),
 			Amount:   fr.NewElement(2),
 			Blinding: fr.NewElement(4),
@@ -51,7 +50,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	merkleProof2 := merkleTree.GetProof(1)
 
 	utxo := &builder.UTXO{
-		Nullifier: []circuits.Nullifier{
+		Nullifier: []builder.Nullifier{
 			nullifier1,
 			nullifier2,
 		},
@@ -59,7 +58,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 			merkleProof1,
 			merkleProof2,
 		},
-		Commitment: []circuits.Commitment{
+		Commitment: []builder.Commitment{
 			{
 				Asset:    fr.NewElement(1),
 				Amount:   fr.NewElement(2),
@@ -89,7 +88,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 	for i := range result.Commitments {
 		commitment := result.Commitments[i]
 
-		memo1 := circuits.Memo{
+		memo1 := builder.Memo{
 			SecretKey: *receiverSecretKey,
 			PublicKey: commitment.OwnerEphemeralPublickKey,
 		}
@@ -107,7 +106,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 		assert.Equal(t, decryptedOwnerMemo.Amount, utxo.Commitment[i].Amount)
 		assert.Equal(t, decryptedOwnerMemo.Blinding, utxo.Commitment[i].Blinding)
 
-		memo2 := circuits.Memo{
+		memo2 := builder.Memo{
 			SecretKey: *auditSecretKey,
 			PublicKey: commitment.AuditEphemeralPublickKey,
 		}

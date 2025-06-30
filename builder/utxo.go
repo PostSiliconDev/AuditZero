@@ -12,10 +12,10 @@ import (
 )
 
 type UTXO struct {
-	Nullifier   []circuits.Nullifier
+	Nullifier   []Nullifier
 	MerkleProof []MerkleProof
 
-	Commitment                 []circuits.Commitment
+	Commitment                 []Commitment
 	EphemeralReceiverSecretKey []big.Int
 	EphemeralAuditSecretKey    []big.Int
 
@@ -137,7 +137,7 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 
 		commitment := utxoCommitment.Compute()
 
-		ownerMemo := circuits.Memo{
+		ownerMemo := Memo{
 			SecretKey: utxo.EphemeralReceiverSecretKey[i],
 			PublicKey: utxo.ReceiverPublicKey,
 		}
@@ -154,7 +154,7 @@ func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
 		}
 		ownerHMAC := ownerMemoCiphertext[3]
 
-		auditMemo := circuits.Memo{
+		auditMemo := Memo{
 			SecretKey: utxo.EphemeralAuditSecretKey[i],
 			PublicKey: utxo.AuditPublicKey,
 		}

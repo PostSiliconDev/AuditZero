@@ -2,9 +2,7 @@ package circuits
 
 import (
 	"fmt"
-	"math/big"
 
-	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
 	twistededwardscrypto "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
@@ -29,34 +27,4 @@ func (gadget *ECDHGadget) Compute(api frontend.API) ([2]frontend.Variable, error
 	sharedKey := te.ScalarMul(publicPoint, gadget.SecretKey)
 
 	return [2]frontend.Variable{sharedKey.X, sharedKey.Y}, nil
-}
-
-type ECDH struct {
-	PublicKey twistededwardbn254.PointAffine
-	SecretKey big.Int
-}
-
-func NewECDH(receiverSecretKey big.Int, senderSecretKey big.Int) *ECDH {
-	base_point := twistededwardbn254.GetEdwardsCurve().Base
-
-	senderPublicKey := base_point.ScalarMultiplication(&base_point, &senderSecretKey)
-
-	return &ECDH{
-		PublicKey: *senderPublicKey,
-		SecretKey: receiverSecretKey,
-	}
-}
-
-func (ecdh *ECDH) Compute() twistededwardbn254.PointAffine {
-	sharedKey := twistededwardbn254.PointAffine{}
-	sharedKey.ScalarMultiplication(&ecdh.PublicKey, &ecdh.SecretKey)
-
-	return sharedKey
-}
-
-func (ecdh *ECDH) ToGadget() *ECDHGadget {
-	return &ECDHGadget{
-		PublicKey: [2]frontend.Variable{ecdh.PublicKey.X, ecdh.PublicKey.Y},
-		SecretKey: ecdh.SecretKey,
-	}
 }
