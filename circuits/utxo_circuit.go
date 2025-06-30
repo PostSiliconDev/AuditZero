@@ -11,6 +11,13 @@ type UTXOCircuit struct {
 	Result UTXOResultGadget
 }
 
+func NewUTXOCircuitWithGadget(utxoGadget UTXOGadget, utxoResultGadget UTXOResultGadget) *UTXOCircuit {
+	return &UTXOCircuit{
+		UTXO:   utxoGadget,
+		Result: utxoResultGadget,
+	}
+}
+
 func NewUTXOCircuit(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOCircuit {
 	return &UTXOCircuit{
 		UTXO:   *NewUTXOGadget(allAssetSize, depth, nullifierSize, commitmentSize),

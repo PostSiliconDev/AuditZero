@@ -218,8 +218,17 @@ func main() {
 	if err != nil {
 		panic("build public witness: " + err.Error())
 	}
-
-	utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), depth, len(utxo.Nullifier), len(utxo.Commitment))
+	// utxoCircuit := circuits.NewUTXOCircuit(len(result.AllAsset), depth, len(utxo.Nullifier), len(utxo.Commitment))
+	allAsset := make([]frontend.Variable, len(result.AllAsset))
+	for i := range result.AllAsset {
+		allAsset[i] = result.AllAsset[i]
+	}
+	utxoResultGadget := result.ToGadget()
+	utxoGadget, tmperr := utxo.ToGadget(allAsset)
+	if tmperr != nil {
+		panic("build utxo gadget: " + tmperr.Error())
+	}
+	utxoCircuit := circuits.NewUTXOCircuitWithGadget(*utxoGadget, *utxoResultGadget)
 
 	cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, utxoCircuit)
 	if err != nil {
