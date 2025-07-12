@@ -40,7 +40,7 @@ func TestNullifier_Circuit_Verification(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	circuit := NewNullifierCircuit()
@@ -68,7 +68,7 @@ func TestNullifier_Circuit_InvalidWitness(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	circuit := NewNullifierCircuit()
@@ -111,7 +111,7 @@ func TestNullifier_Circuit_DifferentInputs(t *testing.T) {
 					Amount:   fr.NewElement(tc.amount),
 					Blinding: fr.NewElement(tc.blinding),
 				},
-				PrivateKey: fr.NewElement(tc.privateKey),
+				SpentPrivateKey: fr.NewElement(tc.privateKey),
 			}
 
 			circuit := NewNullifierCircuit()
@@ -154,7 +154,7 @@ func TestNullifier_Compute_EdgeCases(t *testing.T) {
 					Amount:   fr.NewElement(tc.amount),
 					Blinding: fr.NewElement(tc.blinding),
 				},
-				PrivateKey: fr.NewElement(tc.privateKey),
+				SpentPrivateKey: fr.NewElement(tc.privateKey),
 			}
 
 			result := nullifier.Compute()

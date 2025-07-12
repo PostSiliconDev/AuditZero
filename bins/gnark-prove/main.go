@@ -117,7 +117,7 @@ func main() {
 			Amount:   fr.NewElement(2),
 			Blinding: circuits.BigIntToFr(blinding0),
 		},
-		PrivateKey: circuits.BigIntToFr(senderSecretKey),
+		SpentPrivateKey: circuits.BigIntToFr(senderSecretKey),
 	}
 
 	nullifier0 := nullifier
