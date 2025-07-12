@@ -45,6 +45,15 @@ func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffin
 	plaintext := []fr.Element{
 		commitment.Asset,
 		commitment.Amount,
+		commitment.OwnerPubKey.X,
+		commitment.OwnerPubKey.Y,
+		commitment.SpentAddress,
+		commitment.ViewPubKey.X,
+		commitment.ViewPubKey.Y,
+		commitment.AuditPubKey.X,
+		commitment.AuditPubKey.Y,
+		commitment.FreezeAddress,
+		commitment.FreezeFlag,
 		commitment.Blinding,
 	}
 
@@ -82,5 +91,20 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
 		Asset:    plaintext[0],
 		Amount:   plaintext[1],
 		Blinding: plaintext[2],
+		OwnerPubKey: twistededwardbn254.PointAffine{
+			X: plaintext[3],
+			Y: plaintext[4],
+		},
+		SpentAddress: plaintext[5],
+		ViewPubKey: twistededwardbn254.PointAffine{
+			X: plaintext[6],
+			Y: plaintext[7],
+		},
+		AuditPubKey: twistededwardbn254.PointAffine{
+			X: plaintext[8],
+			Y: plaintext[9],
+		},
+		FreezeAddress: plaintext[10],
+		FreezeFlag:    plaintext[11],
 	}, nil
 }
