@@ -10,44 +10,35 @@ import (
 
 type Nullifier struct {
 	Commitment
-	PrivateKey fr.Element
+	SpentPrivateKey fr.Element
 }
 
 func (nullifier *Nullifier) ToString() string {
-	return fmt.Sprintf("%s%s%s%s", nullifier.Asset.Text(10), nullifier.Amount.Text(10), nullifier.Blinding.Text(10), nullifier.PrivateKey.Text(10))
+	return fmt.Sprintf("Commitment: %s,PrivateKey: %s", nullifier.Commitment.String(), nullifier.SpentPrivateKey.Text(10))
 }
 
 func (nullifier *Nullifier) ToGadget() *circuits.NullifierGadget {
 	return &circuits.NullifierGadget{
 		CommitmentGadget: *nullifier.Commitment.ToGadget(),
-		PrivateKey:       nullifier.PrivateKey,
+		PrivateKey:       nullifier.SpentPrivateKey,
 	}
 }
 
 func (nullifier *Nullifier) Compute() fr.Element {
 	hasher := poseidon2.NewMerkleDamgardHasher()
 
-	asset_bytes := nullifier.Asset.Bytes()
-	amount_bytes := nullifier.Amount.Bytes()
-	blinding_bytes := nullifier.Blinding.Bytes()
-	secret_key_bytes := nullifier.PrivateKey.Bytes()
+	commitment := nullifier.Commitment.Compute()
 
-	hasher.Write(asset_bytes[:])
-	hasher.Write(amount_bytes[:])
-	hasher.Write(blinding_bytes[:])
+	commitmentBytes := commitment.Bytes()
+	spentPrivateKeyBytes := nullifier.SpentPrivateKey.Bytes()
 
-	res_bytes := hasher.Sum(secret_key_bytes[:])
+	hasher.Write(commitmentBytes[:])
+	hasher.Write(spentPrivateKeyBytes[:])
+
+	res_bytes := hasher.Sum(spentPrivateKeyBytes[:])
 
 	res := fr.Element{}
 	res.Unmarshal(res_bytes)
 
 	return res
-}
-
-func (nullifier *Nullifier) ToCommitment() *Commitment {
-	return &Commitment{
-		Asset:    nullifier.Asset,
-		Amount:   nullifier.Amount,
-		Blinding: nullifier.Blinding,
-	}
 }

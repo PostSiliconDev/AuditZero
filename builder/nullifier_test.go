@@ -16,7 +16,7 @@ func TestNullifier_Compute(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	result := nullifier.Compute()
@@ -25,7 +25,7 @@ func TestNullifier_Compute(t *testing.T) {
 	assert.NotEqual(t, nullifier.Asset, result)
 	assert.NotEqual(t, nullifier.Amount, result)
 	assert.NotEqual(t, nullifier.Blinding, result)
-	assert.NotEqual(t, nullifier.PrivateKey, result)
+	assert.NotEqual(t, nullifier.SpentPrivateKey, result)
 }
 
 func TestNullifier_Compute_DifferentInputs(t *testing.T) {
@@ -36,7 +36,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	// Different asset
@@ -46,7 +46,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
 		},
-		PrivateKey: base.PrivateKey,
+		SpentPrivateKey: base.SpentPrivateKey,
 	}
 
 	// Different amount
@@ -56,7 +56,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 			Amount:   fr.NewElement(98765),
 			Blinding: base.Blinding,
 		},
-		PrivateKey: base.PrivateKey,
+		SpentPrivateKey: base.SpentPrivateKey,
 	}
 
 	// Different blinding
@@ -66,7 +66,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 			Amount:   base.Amount,
 			Blinding: fr.NewElement(33333),
 		},
-		PrivateKey: base.PrivateKey,
+		SpentPrivateKey: base.SpentPrivateKey,
 	}
 
 	// Different private key
@@ -76,7 +76,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
 		},
-		PrivateKey: fr.NewElement(44444),
+		SpentPrivateKey: fr.NewElement(44444),
 	}
 
 	result0 := base.Compute()
@@ -106,7 +106,7 @@ func TestNullifier_Compute_Deterministic(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	result1 := nullifier.Compute()
@@ -126,7 +126,7 @@ func TestNullifier_Compute_ZeroValues(t *testing.T) {
 			Amount:   fr.NewElement(0),
 			Blinding: fr.NewElement(0),
 		},
-		PrivateKey: fr.NewElement(0),
+		SpentPrivateKey: fr.NewElement(0),
 	}
 
 	result := nullifier.Compute()
@@ -141,7 +141,7 @@ func TestNullifier_Compute_LargeValues(t *testing.T) {
 			Amount:   fr.NewElement(0xFFFFFFFFFFFFFFFF),
 			Blinding: fr.NewElement(0xFFFFFFFFFFFFFFFF),
 		},
-		PrivateKey: fr.NewElement(0xFFFFFFFFFFFFFFFF),
+		SpentPrivateKey: fr.NewElement(0xFFFFFFFFFFFFFFFF),
 	}
 
 	result := nullifier.Compute()
@@ -156,7 +156,7 @@ func TestNullifier_ToWitness(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	witness := nullifier.ToGadget()
@@ -166,7 +166,7 @@ func TestNullifier_ToWitness(t *testing.T) {
 	assert.Equal(t, nullifier.Asset, witness.Asset)
 	assert.Equal(t, nullifier.Amount, witness.Amount)
 	assert.Equal(t, nullifier.Blinding, witness.Blinding)
-	assert.Equal(t, nullifier.PrivateKey, witness.PrivateKey)
+	assert.Equal(t, nullifier.SpentPrivateKey, witness.PrivateKey)
 
 }
 
@@ -178,7 +178,7 @@ func TestNullifier_ToWitness_Consistency(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	witness1 := nullifier.ToGadget()
@@ -197,26 +197,6 @@ func TestNullifier_ToWitness_Consistency(t *testing.T) {
 	assert.Equal(t, witness1.PrivateKey, witness3.PrivateKey)
 }
 
-func TestNullifier_ToCommitment(t *testing.T) {
-	// Test conversion to commitment
-	nullifier := &builder.Nullifier{
-		Commitment: builder.Commitment{
-			Asset:    fr.NewElement(12345),
-			Amount:   fr.NewElement(67890),
-			Blinding: fr.NewElement(11111),
-		},
-		PrivateKey: fr.NewElement(22222),
-	}
-
-	commitment := nullifier.ToCommitment()
-	assert.NotNil(t, commitment)
-
-	// Verify commitment fields (should not include private key)
-	assert.Equal(t, nullifier.Asset, commitment.Asset)
-	assert.Equal(t, nullifier.Amount, commitment.Amount)
-	assert.Equal(t, nullifier.Blinding, commitment.Blinding)
-}
-
 func TestNullifier_Uniqueness(t *testing.T) {
 	// Test that nullifiers are unique for different inputs
 	base := &builder.Nullifier{
@@ -225,7 +205,7 @@ func TestNullifier_Uniqueness(t *testing.T) {
 			Amount:   fr.NewElement(67890),
 			Blinding: fr.NewElement(11111),
 		},
-		PrivateKey: fr.NewElement(22222),
+		SpentPrivateKey: fr.NewElement(22222),
 	}
 
 	baseResult := base.Compute()
@@ -237,7 +217,7 @@ func TestNullifier_Uniqueness(t *testing.T) {
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
 		},
-		PrivateKey: fr.NewElement(33333), // Different private key
+		SpentPrivateKey: fr.NewElement(33333), // Different private key
 	}
 
 	sameInputsResult := nullifierSameInputs.Compute()
@@ -250,7 +230,7 @@ func TestNullifier_Uniqueness(t *testing.T) {
 			Amount:   base.Amount,
 			Blinding: base.Blinding,
 		},
-		PrivateKey: base.PrivateKey,
+		SpentPrivateKey: base.SpentPrivateKey,
 	}
 
 	sameKeyResult := nullifierSameKey.Compute()

@@ -29,8 +29,30 @@ func (commitment *Commitment) ToGadget() *circuits.CommitmentGadget {
 	}
 }
 
+func formatPoint(point twistededwardbn254.PointAffine) string {
+	return fmt.Sprintf("(%s, %s)", point.X.Text(10), point.Y.Text(10))
+}
+
 func (commitment *Commitment) String() string {
-	return fmt.Sprintf("Commitment(Asset: %s, Amount: %s, Blinding: %s,)", commitment.Asset.Text(10), commitment.Amount.Text(10), commitment.Blinding.Text(10))
+	assetStr := fmt.Sprintf("Asset: %s", commitment.Asset.Text(10))
+	amountStr := fmt.Sprintf("Amount: %s", commitment.Amount.Text(10))
+	blindingStr := fmt.Sprintf("Blinding: %s", commitment.Blinding.Text(10))
+	ownerPubKey := fmt.Sprintf("OwnerPubKey: %s", formatPoint(commitment.OwnerPubKey))
+	spentAddress := fmt.Sprintf("SpentAddress: %s", commitment.SpentAddress.Text(10))
+	viewPubKey := fmt.Sprintf("ViewPubKey: %s", formatPoint(commitment.ViewPubKey))
+	auditPubKey := fmt.Sprintf("AuditPubKey: %s", formatPoint(commitment.AuditPubKey))
+	freezeAddress := fmt.Sprintf("FreezeAddress: %s", commitment.FreezeAddress.Text(10))
+	freezeFlag := fmt.Sprintf("FreezeFlag: %s", commitment.FreezeFlag.Text(10))
+	return fmt.Sprintf("Commitment(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+		assetStr,
+		amountStr,
+		blindingStr,
+		ownerPubKey,
+		spentAddress,
+		viewPubKey,
+		auditPubKey,
+		freezeAddress,
+		freezeFlag)
 }
 
 func (commitment *Commitment) Compute() fr.Element {

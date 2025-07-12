@@ -24,7 +24,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 			Amount:   fr.NewElement(2),
 			Blinding: fr.NewElement(3),
 		},
-		PrivateKey: fr.NewElement(1),
+		SpentPrivateKey: fr.NewElement(1),
 	}
 
 	nullifier2 := builder.Nullifier{
@@ -33,7 +33,7 @@ func TestUTXO_BuildAndCheck(t *testing.T) {
 			Amount:   fr.NewElement(2),
 			Blinding: fr.NewElement(4),
 		},
-		PrivateKey: fr.NewElement(2),
+		SpentPrivateKey: fr.NewElement(2),
 	}
 
 	nullifier1_commit := nullifier1.Commitment.Compute()
