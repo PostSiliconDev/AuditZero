@@ -7,6 +7,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
 	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
+	"github.com/consensys/gnark/frontend"
 )
 
 type Commitment struct {
@@ -23,9 +24,15 @@ type Commitment struct {
 
 func (commitment *Commitment) ToGadget() *circuits.CommitmentGadget {
 	return &circuits.CommitmentGadget{
-		Asset:    commitment.Asset,
-		Amount:   commitment.Amount,
-		Blinding: commitment.Blinding,
+		Asset:         commitment.Asset,
+		Amount:        commitment.Amount,
+		OwnerPubKey:   [2]frontend.Variable{commitment.OwnerPubKey.X, commitment.OwnerPubKey.Y},
+		SpentAddress:  commitment.SpentAddress,
+		ViewPubKey:    [2]frontend.Variable{commitment.ViewPubKey.X, commitment.ViewPubKey.Y},
+		AuditPubKey:   [2]frontend.Variable{commitment.AuditPubKey.X, commitment.AuditPubKey.Y},
+		FreezeAddress: commitment.FreezeAddress,
+		FreezeFlag:    commitment.FreezeFlag,
+		Blinding:      commitment.Blinding,
 	}
 }
 
