@@ -33,7 +33,6 @@ func (nullifier *Nullifier) Compute() fr.Element {
 	spentPrivateKeyBytes := nullifier.SpentPrivateKey.Bytes()
 
 	hasher.Write(commitmentBytes[:])
-	hasher.Write(spentPrivateKeyBytes[:])
 
 	res_bytes := hasher.Sum(spentPrivateKeyBytes[:])
 
