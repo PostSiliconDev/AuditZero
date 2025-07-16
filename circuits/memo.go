@@ -31,6 +31,15 @@ func (gadget *MemoGadget) Generate(api frontend.API, output CommitmentGadget) (f
 	plaintext := []frontend.Variable{
 		output.Asset,
 		output.Amount,
+		output.OwnerPubKey[0],
+		output.OwnerPubKey[1],
+		output.SpentAddress,
+		output.ViewPubKey[0],
+		output.ViewPubKey[1],
+		output.AuditPubKey[0],
+		output.AuditPubKey[1],
+		output.FreezeAddress,
+		output.FreezeFlag,
 		output.Blinding,
 	}
 
