@@ -60,8 +60,6 @@ func (mt *MerkleTree) Build(elems []fr.Element) {
 }
 
 func (mt *MerkleTree) AppendSingle(elem fr.Element) {
-	mt.tree[mt.latestLeafIndex] = elem
-
 	flag := utils.IntToBits(mt.latestLeafIndex, mt.depth)
 
 	root := elem
