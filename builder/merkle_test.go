@@ -16,26 +16,26 @@ func TestMerkleTreeBuild(t *testing.T) {
 		fr.NewElement(2),
 		fr.NewElement(3),
 		fr.NewElement(4),
-		fr.NewElement(5),
-		fr.NewElement(6),
-		fr.NewElement(7),
 	}
 
 	hasher := poseidon2.NewMerkleDamgardHasher()
 
 	mt := builder.NewMerkleTree(34, hasher)
 
-	mt.Build(elems)
-	// mt.PrintTree()
+	for _, elem := range elems {
+		mt.AppendSingle(elem)
+	}
 
-	proof := mt.GetProof(5)
-	// proof.PrintProof()
+	mt.PrintTree()
+
+	proof := mt.GetProof(2)
+	proof.PrintProof()
 
 	fmt.Println("proof root")
 	proofRoot := proof.Verify()
-	// fmt.Println(proofRoot.Text(10))
+	fmt.Println(proofRoot.Text(10))
 
 	merkleRoot := mt.GetRoot()
-	// fmt.Println(merkleRoot.Text(10))
+	fmt.Println(merkleRoot.Text(10))
 	assert.Equal(t, proofRoot, merkleRoot)
 }

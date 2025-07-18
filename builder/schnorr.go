@@ -117,9 +117,8 @@ func computeHash(message fr.Element, R *twistededwardbn254.PointAffine, P *twist
 	hasher.Write(rXBytes[:])
 	hasher.Write(rYBytes[:])
 	hasher.Write(pXBytes[:])
-	hasher.Write(pYBytes[:])
 
-	hashBytes := hasher.Sum(nil)
+	hashBytes := hasher.Sum(pYBytes[:])
 
 	hash := fr.Element{}
 	hash.SetBytes(hashBytes)
