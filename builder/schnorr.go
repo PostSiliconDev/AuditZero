@@ -62,20 +62,25 @@ func (kp *Keypair) Sign(random fr.Element, messageHash fr.Element) *Signature {
 	}
 
 	var R twistededwardbn254.PointAffine
-	base := twistededwardbn254.GetEdwardsCurve().Base
-	R.ScalarMultiplication(&base, &randomBigInt)
+
+	curve := twistededwardbn254.GetEdwardsCurve()
+	R.ScalarMultiplication(&curve.Base, &randomBigInt)
 
 	c := computeHash(messageHash, &R, &kp.PublicKey)
 
-	var cx fr.Element
-	cx.Mul(&kp.SecretKey, &c)
+	cx := new(big.Int).Mul(kp.SecretKey.BigInt(&big.Int{}), c.BigInt(&big.Int{}))
+	cx = cx.Mod(cx, &curve.Order)
+	fmt.Println("cx", cx.Text(10))
 
-	var s fr.Element
-	s.Add(&random, &cx)
+	s := new(big.Int).Add(&randomBigInt, cx)
+	s = s.Mod(s, &curve.Order)
+
+	var sign fr.Element
+	sign.SetBigInt(s)
 
 	signature := &Signature{
 		R: R,
-		S: s,
+		S: sign,
 	}
 
 	return signature
@@ -95,12 +100,9 @@ func Verify(messageHash fr.Element, signature *Signature, publicKey *twistededwa
 	c.BigInt(cPBigInt)
 	cP.ScalarMultiplication(publicKey, cPBigInt)
 
-	fmt.Println("sG", sG.X.Text(10), sG.Y.Text(10))
-
 	var RcP twistededwardbn254.PointAffine
 	RcP.Add(&signature.R, &cP)
 
-	fmt.Println("RcP", RcP.X.Text(10), RcP.Y.Text(10))
 	return sG.Equal(&RcP)
 }
 
