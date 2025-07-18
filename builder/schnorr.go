@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -25,29 +26,36 @@ func GenerateKeypair() (*Keypair, error) {
 		return nil, err
 	}
 
-	kp := &Keypair{
-		SecretKey: secretKey,
-		PublicKey: twistededwardbn254.PointAffine{},
-	}
-
 	base := twistededwardbn254.GetEdwardsCurve().Base
 	secretKeyBigInt := big.NewInt(0)
-	kp.SecretKey.BigInt(secretKeyBigInt)
+	secretKey.BigInt(secretKeyBigInt)
 
-	kp.PublicKey = *kp.PublicKey.ScalarMultiplication(&base, secretKeyBigInt)
+	var publicKey twistededwardbn254.PointAffine
+	publicKey.ScalarMultiplication(&base, secretKeyBigInt)
 
-	return kp, nil
+	return &Keypair{
+		SecretKey: secretKey,
+		PublicKey: publicKey,
+	}, nil
 }
 
-func (kp *Keypair) Sign(messageHash fr.Element) (*Signature, error) {
-	random := fr.Element{}
-	_, err := random.SetRandom()
-	if err != nil {
-		return nil, err
-	}
+func GenerateKeypairWithSeed(privateKey fr.Element) (*Keypair, error) {
+	base := twistededwardbn254.GetEdwardsCurve().Base
+	secretKeyBigInt := big.NewInt(0)
+	privateKey.BigInt(secretKeyBigInt)
 
-	randomBigInt := big.NewInt(0)
-	random.BigInt(randomBigInt)
+	var publicKey twistededwardbn254.PointAffine
+	publicKey.ScalarMultiplication(&base, secretKeyBigInt)
+
+	return &Keypair{
+		SecretKey: privateKey,
+		PublicKey: publicKey,
+	}, nil
+}
+
+func (kp *Keypair) Sign(random fr.Element, messageHash fr.Element) *Signature {
+	var randomBigInt big.Int
+	random.BigInt(&randomBigInt)
 
 	if random.IsZero() {
 		random.SetOne()
@@ -55,19 +63,22 @@ func (kp *Keypair) Sign(messageHash fr.Element) (*Signature, error) {
 
 	var R twistededwardbn254.PointAffine
 	base := twistededwardbn254.GetEdwardsCurve().Base
-	R.ScalarMultiplication(&base, randomBigInt)
+	R.ScalarMultiplication(&base, &randomBigInt)
 
 	c := computeHash(messageHash, &R, &kp.PublicKey)
 
-	cx := c.Mul(&kp.SecretKey, &c)
-	s := c.Add(&random, cx)
+	var cx fr.Element
+	cx.Mul(&kp.SecretKey, &c)
+
+	var s fr.Element
+	s.Add(&random, &cx)
 
 	signature := &Signature{
 		R: R,
-		S: *s,
+		S: s,
 	}
 
-	return signature, nil
+	return signature
 }
 
 func Verify(messageHash fr.Element, signature *Signature, publicKey *twistededwardbn254.PointAffine) bool {
@@ -75,14 +86,21 @@ func Verify(messageHash fr.Element, signature *Signature, publicKey *twistededwa
 
 	var sG twistededwardbn254.PointAffine
 	base := twistededwardbn254.GetEdwardsCurve().Base
-	sG.ScalarMultiplication(&base, signature.S.BigInt(nil))
+	sBigInt := big.NewInt(0)
+	signature.S.BigInt(sBigInt)
+	sG.ScalarMultiplication(&base, sBigInt)
 
 	var cP twistededwardbn254.PointAffine
-	cP.ScalarMultiplication(publicKey, c.BigInt(nil))
+	cPBigInt := big.NewInt(0)
+	c.BigInt(cPBigInt)
+	cP.ScalarMultiplication(publicKey, cPBigInt)
+
+	fmt.Println("sG", sG.X.Text(10), sG.Y.Text(10))
 
 	var RcP twistededwardbn254.PointAffine
 	RcP.Add(&signature.R, &cP)
 
+	fmt.Println("RcP", RcP.X.Text(10), RcP.Y.Text(10))
 	return sG.Equal(&RcP)
 }
 

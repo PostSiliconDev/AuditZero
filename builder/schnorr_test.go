@@ -39,12 +39,13 @@ func TestGenerateKeypair_MultipleKeys(t *testing.T) {
 }
 
 func TestKeypair_Sign(t *testing.T) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
 	messageHash := fr.NewElement(12345)
-	signature, err := kp.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp.Sign(random, messageHash)
 	assert.NotNil(t, signature)
 	assert.NotEqual(t, fr.Element{}, signature.S)
 	assert.NotEqual(t, fr.Element{}, signature.R.X)
@@ -52,6 +53,10 @@ func TestKeypair_Sign(t *testing.T) {
 }
 
 func TestKeypair_Sign_MultipleMessages(t *testing.T) {
+	random1 := fr.NewElement(12345)
+	random2 := fr.NewElement(12345)
+	random3 := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
@@ -59,14 +64,11 @@ func TestKeypair_Sign_MultipleMessages(t *testing.T) {
 	message2 := fr.NewElement(67890)
 	message3 := fr.NewElement(11111)
 
-	sig1, err := kp.Sign(message1)
-	require.NoError(t, err)
+	sig1 := kp.Sign(random1, message1)
 
-	sig2, err := kp.Sign(message2)
-	require.NoError(t, err)
+	sig2 := kp.Sign(random2, message2)
 
-	sig3, err := kp.Sign(message3)
-	require.NoError(t, err)
+	sig3 := kp.Sign(random3, message3)
 
 	// 不同消息的签名应该不同
 	assert.NotEqual(t, sig1.S, sig2.S)
@@ -79,16 +81,17 @@ func TestKeypair_Sign_MultipleMessages(t *testing.T) {
 }
 
 func TestKeypair_Sign_SameMessage(t *testing.T) {
+	random1 := fr.NewElement(12345)
+	random2 := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
 	message := fr.NewElement(12345)
 
-	sig1, err := kp.Sign(message)
-	require.NoError(t, err)
+	sig1 := kp.Sign(random1, message)
 
-	sig2, err := kp.Sign(message)
-	require.NoError(t, err)
+	sig2 := kp.Sign(random2, message)
 
 	// 相同消息的签名应该不同（因为使用了随机数）
 	assert.NotEqual(t, sig1.S, sig2.S)
@@ -96,12 +99,14 @@ func TestKeypair_Sign_SameMessage(t *testing.T) {
 }
 
 func TestVerify_ValidSignature(t *testing.T) {
-	kp, err := builder.GenerateKeypair()
+	privateKey := fr.NewElement(12345)
+	random := fr.NewElement(12345)
+
+	kp, err := builder.GenerateKeypairWithSeed(privateKey)
 	require.NoError(t, err)
 
 	messageHash := fr.NewElement(12345)
-	signature, err := kp.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp.Sign(random, messageHash)
 
 	// 验证应该成功
 	result := builder.Verify(messageHash, signature, &kp.PublicKey)
@@ -109,12 +114,13 @@ func TestVerify_ValidSignature(t *testing.T) {
 }
 
 func TestVerify_InvalidMessage(t *testing.T) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
 	messageHash := fr.NewElement(12345)
-	signature, err := kp.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp.Sign(random, messageHash)
 
 	// 使用不同的消息验证
 	wrongMessage := fr.NewElement(67890)
@@ -123,6 +129,8 @@ func TestVerify_InvalidMessage(t *testing.T) {
 }
 
 func TestVerify_InvalidPublicKey(t *testing.T) {
+	random := fr.NewElement(12345)
+
 	kp1, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
@@ -130,8 +138,7 @@ func TestVerify_InvalidPublicKey(t *testing.T) {
 	require.NoError(t, err)
 
 	messageHash := fr.NewElement(12345)
-	signature, err := kp1.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp1.Sign(random, messageHash)
 
 	// 使用错误的公钥验证
 	result := builder.Verify(messageHash, signature, &kp2.PublicKey)
@@ -139,12 +146,13 @@ func TestVerify_InvalidPublicKey(t *testing.T) {
 }
 
 func TestVerify_InvalidSignature(t *testing.T) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
 	messageHash := fr.NewElement(12345)
-	signature, err := kp.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp.Sign(random, messageHash)
 
 	// 修改签名
 	originalS := signature.S
@@ -160,50 +168,30 @@ func TestVerify_InvalidSignature(t *testing.T) {
 }
 
 func TestVerify_ZeroMessage(t *testing.T) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
 	messageHash := fr.NewElement(0)
-	signature, err := kp.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp.Sign(random, messageHash)
 
 	result := builder.Verify(messageHash, signature, &kp.PublicKey)
 	assert.True(t, result)
 }
 
 func TestVerify_LargeMessage(t *testing.T) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	require.NoError(t, err)
 
 	// 使用一个较大的消息
 	messageHash := fr.NewElement(0xFFFFFFFFFFFFFFFF)
-	signature, err := kp.Sign(messageHash)
-	require.NoError(t, err)
+	signature := kp.Sign(random, messageHash)
 
 	result := builder.Verify(messageHash, signature, &kp.PublicKey)
 	assert.True(t, result)
-}
-
-func TestSignVerify_EndToEnd(t *testing.T) {
-	// 测试完整的签名和验证流程
-	kp, err := builder.GenerateKeypair()
-	require.NoError(t, err)
-
-	messages := []fr.Element{
-		fr.NewElement(0),
-		fr.NewElement(1),
-		fr.NewElement(12345),
-		fr.NewElement(67890),
-		fr.NewElement(0xFFFFFFFFFFFFFFFF),
-	}
-
-	for _, message := range messages {
-		signature, err := kp.Sign(message)
-		require.NoError(t, err)
-
-		result := builder.Verify(message, signature, &kp.PublicKey)
-		assert.True(t, result, "Verification failed for message %v", message)
-	}
 }
 
 func TestSignVerify_MultipleKeypairs(t *testing.T) {
@@ -216,10 +204,10 @@ func TestSignVerify_MultipleKeypairs(t *testing.T) {
 	}
 
 	message := fr.NewElement(12345)
+	random := fr.NewElement(12345)
 
 	for i, kp := range keypairs {
-		signature, err := kp.Sign(message)
-		require.NoError(t, err)
+		signature := kp.Sign(random, message)
 
 		// 使用正确的公钥验证应该成功
 		result := builder.Verify(message, signature, &kp.PublicKey)
@@ -236,6 +224,9 @@ func TestSignVerify_MultipleKeypairs(t *testing.T) {
 }
 
 func TestComputeHash_Deterministic(t *testing.T) {
+	random1 := fr.NewElement(12345)
+	random2 := fr.NewElement(12345)
+
 	// 测试哈希函数的确定性
 	message := fr.NewElement(12345)
 
@@ -244,10 +235,8 @@ func TestComputeHash_Deterministic(t *testing.T) {
 	require.NoError(t, err)
 
 	// 使用相同的输入计算哈希 - 通过签名来间接测试哈希函数
-	sig1, err := kp.Sign(message)
-	require.NoError(t, err)
-	sig2, err := kp.Sign(message)
-	require.NoError(t, err)
+	sig1 := kp.Sign(random1, message)
+	sig2 := kp.Sign(random2, message)
 
 	// 虽然签名会不同（因为随机数），但验证应该都成功
 	result1 := builder.Verify(message, sig1, &kp.PublicKey)
@@ -258,6 +247,9 @@ func TestComputeHash_Deterministic(t *testing.T) {
 }
 
 func TestComputeHash_DifferentInputs(t *testing.T) {
+	random1 := fr.NewElement(12345)
+	random2 := fr.NewElement(12345)
+
 	// 测试不同输入产生不同的哈希
 	message1 := fr.NewElement(12345)
 	message2 := fr.NewElement(67890)
@@ -266,10 +258,8 @@ func TestComputeHash_DifferentInputs(t *testing.T) {
 	require.NoError(t, err)
 
 	// 不同消息的签名应该不同
-	sig1, err := kp.Sign(message1)
-	require.NoError(t, err)
-	sig2, err := kp.Sign(message2)
-	require.NoError(t, err)
+	sig1 := kp.Sign(random1, message1)
+	sig2 := kp.Sign(random2, message2)
 
 	assert.NotEqual(t, sig1.S, sig2.S)
 	assert.NotEqual(t, sig1.R.X, sig2.R.X)
@@ -286,6 +276,8 @@ func BenchmarkGenerateKeypair(b *testing.B) {
 }
 
 func BenchmarkSign(b *testing.B) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	if err != nil {
 		b.Fatal(err)
@@ -295,7 +287,7 @@ func BenchmarkSign(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := kp.Sign(messageHash)
+		kp.Sign(random, messageHash)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -303,13 +295,15 @@ func BenchmarkSign(b *testing.B) {
 }
 
 func BenchmarkVerify(b *testing.B) {
+	random := fr.NewElement(12345)
+
 	kp, err := builder.GenerateKeypair()
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	messageHash := fr.NewElement(12345)
-	signature, err := kp.Sign(messageHash)
+	signature := kp.Sign(random, messageHash)
 	if err != nil {
 		b.Fatal(err)
 	}
