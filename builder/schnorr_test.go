@@ -248,7 +248,7 @@ func TestComputeHash_Deterministic(t *testing.T) {
 
 func TestComputeHash_DifferentInputs(t *testing.T) {
 	random1 := fr.NewElement(12345)
-	random2 := fr.NewElement(12345)
+	random2 := fr.NewElement(1234)
 
 	// 测试不同输入产生不同的哈希
 	message1 := fr.NewElement(12345)
