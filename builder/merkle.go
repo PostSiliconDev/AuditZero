@@ -22,12 +22,11 @@ func NewMerkleTree(depth int, hasher hash.Hash) *MerkleTree {
 	return &MerkleTree{
 		depth:  depth,
 		hasher: hasher,
+		tree:   make(map[int]fr.Element),
 	}
 }
 
 func (mt *MerkleTree) Build(elems []fr.Element) {
-	mt.tree = make(map[int]fr.Element)
-
 	for i := 0; i < len(elems); i++ {
 		mt.tree[i] = elems[i]
 		mt.latestLeafIndex = i
@@ -61,9 +60,6 @@ func (mt *MerkleTree) Build(elems []fr.Element) {
 }
 
 func (mt *MerkleTree) AppendSingle(elem fr.Element) {
-	mt.tree[mt.latestLeafIndex] = elem
-	mt.latestLeafIndex = mt.latestLeafIndex + 1
-
 	flag := utils.IntToBits(mt.latestLeafIndex, mt.depth)
 
 	root := elem
@@ -71,7 +67,8 @@ func (mt *MerkleTree) AppendSingle(elem fr.Element) {
 	thisLayerBegin := 0
 	groupThisLayer := mt.latestLeafIndex
 
-	for i := 0; i < len(flag)-1; i++ {
+	for i := 0; i < len(flag); i++ {
+		mt.tree[thisLayerBegin+groupThisLayer] = root
 		if flag[i] {
 			// fmt.Println("flag[i] is true, group index is", groupThisLayer, thisLayerBegin+groupThisLayer-1)
 			root = hashElement(mt.hasher, mt.tree[thisLayerBegin+groupThisLayer-1], root)
@@ -83,6 +80,8 @@ func (mt *MerkleTree) AppendSingle(elem fr.Element) {
 		thisLayerBegin = thisLayerBegin + int(math.Pow(2, float64(mt.depth-1-i)))
 		groupThisLayer = groupThisLayer / 2
 	}
+
+	mt.latestLeafIndex = mt.latestLeafIndex + 1
 }
 
 func (mt *MerkleTree) GetRoot() fr.Element {

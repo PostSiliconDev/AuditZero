@@ -18,9 +18,12 @@ func (gadget *NullifierGadget) Compute(api frontend.API) (frontend.Variable, err
 		return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
 	}
 
-	hasher.Write(gadget.Asset)
-	hasher.Write(gadget.Amount)
-	hasher.Write(gadget.Blinding)
+	commitment, err := gadget.CommitmentGadget.Compute(api)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute commitment: %w", err)
+	}
+
+	hasher.Write(commitment)
 	hasher.Write(gadget.PrivateKey)
 
 	nullifier := hasher.Sum()

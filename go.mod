@@ -2,7 +2,7 @@ module hide-pay
 
 go 1.23.0
 
-toolchain go1.23.10
+toolchain go1.24.2
 
 require (
 	github.com/consensys/gnark v0.13.0
