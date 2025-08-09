@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -70,7 +69,6 @@ func (kp *Keypair) Sign(random fr.Element, messageHash fr.Element) *Signature {
 
 	cx := new(big.Int).Mul(kp.SecretKey.BigInt(&big.Int{}), c.BigInt(&big.Int{}))
 	cx = cx.Mod(cx, &curve.Order)
-	fmt.Println("cx", cx.Text(10))
 
 	s := new(big.Int).Add(&randomBigInt, cx)
 	s = s.Mod(s, &curve.Order)
