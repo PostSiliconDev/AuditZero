@@ -45,6 +45,7 @@ func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffin
 	plaintext := []fr.Element{
 		commitment.Asset,
 		commitment.Amount,
+		commitment.Blinding,
 		commitment.OwnerPubKey.X,
 		commitment.OwnerPubKey.Y,
 		commitment.SpentAddress,
@@ -54,7 +55,6 @@ func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffin
 		commitment.AuditPubKey.Y,
 		commitment.FreezeAddress,
 		commitment.FreezeFlag,
-		commitment.Blinding,
 	}
 
 	ciphertext, err := streamCipher.Encrypt(ad, plaintext)
