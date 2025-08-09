@@ -53,7 +53,6 @@ func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffin
 		commitment.ViewPubKey.Y,
 		commitment.AuditPubKey.X,
 		commitment.AuditPubKey.Y,
-		commitment.FreezeAddress,
 		commitment.FreezeFlag,
 	}
 
@@ -104,7 +103,6 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
 			X: plaintext[8],
 			Y: plaintext[9],
 		},
-		FreezeAddress: plaintext[10],
-		FreezeFlag:    plaintext[11],
+		FreezeFlag: plaintext[10],
 	}, nil
 }
