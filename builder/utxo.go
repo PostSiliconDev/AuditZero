@@ -1,212 +1,212 @@
 package builder
 
-import (
-	"fmt"
-	"hide-pay/circuits"
-	"math/big"
-	"reflect"
+// import (
+// 	"fmt"
+// 	"hide-pay/circuits"
+// 	"math/big"
+// 	"reflect"
 
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
-	"github.com/consensys/gnark/frontend"
-)
+// 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+// 	twistededwardbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
+// 	"github.com/consensys/gnark/frontend"
+// )
 
-type UTXO struct {
-	Nullifier   []Nullifier
-	MerkleProof []MerkleProof
+// type UTXO struct {
+// 	Nullifier   []Nullifier
+// 	MerkleProof []MerkleProof
 
-	Commitment                 []Commitment
-	EphemeralReceiverSecretKey []big.Int
-	EphemeralAuditSecretKey    []big.Int
+// 	Commitment                 []Commitment
+// 	EphemeralReceiverSecretKey []big.Int
+// 	EphemeralAuditSecretKey    []big.Int
 
-	ReceiverPublicKey twistededwardbn254.PointAffine
-	AuditPublicKey    twistededwardbn254.PointAffine
-}
+// 	ReceiverPublicKey twistededwardbn254.PointAffine
+// 	AuditPublicKey    twistededwardbn254.PointAffine
+// }
 
-func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, error) {
-	nullifiers := make([]circuits.NullifierGadget, len(utxo.Nullifier))
-	merkleProofPath := make([]frontend.Variable, 0)
-	merkleProofIndex := make([]frontend.Variable, len(utxo.MerkleProof))
+// func (utxo *UTXO) ToGadget(allAsset []frontend.Variable) (*circuits.UTXOGadget, error) {
+// 	nullifiers := make([]circuits.NullifierGadget, len(utxo.Nullifier))
+// 	merkleProofPath := make([]frontend.Variable, 0)
+// 	merkleProofIndex := make([]frontend.Variable, len(utxo.MerkleProof))
 
-	commitments := make([]circuits.CommitmentGadget, len(utxo.Commitment))
+// 	commitments := make([]circuits.CommitmentGadget, len(utxo.Commitment))
 
-	for i := range utxo.Nullifier {
-		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
+// 	for i := range utxo.Nullifier {
+// 		nullifiers[i] = *utxo.Nullifier[i].ToGadget()
 
-		merkleProof := utxo.MerkleProof[i].ToGadget()
+// 		merkleProof := utxo.MerkleProof[i].ToGadget()
 
-		merkleProofPath = append(merkleProofPath, merkleProof.Path...)
-		merkleProofIndex[i] = merkleProof.Leaf
-	}
+// 		merkleProofPath = append(merkleProofPath, merkleProof.Path...)
+// 		merkleProofIndex[i] = merkleProof.Leaf
+// 	}
 
-	for i := range utxo.Commitment {
-		commitments[i] = *utxo.Commitment[i].ToGadget()
-	}
+// 	for i := range utxo.Commitment {
+// 		commitments[i] = *utxo.Commitment[i].ToGadget()
+// 	}
 
-	ephemeralReceiverSecretKeys := make([]frontend.Variable, len(utxo.EphemeralReceiverSecretKey))
-	ephemeralAuditSecretKeys := make([]frontend.Variable, len(utxo.EphemeralAuditSecretKey))
+// 	ephemeralReceiverSecretKeys := make([]frontend.Variable, len(utxo.EphemeralReceiverSecretKey))
+// 	ephemeralAuditSecretKeys := make([]frontend.Variable, len(utxo.EphemeralAuditSecretKey))
 
-	for i := range utxo.EphemeralReceiverSecretKey {
-		ephemeralReceiverSecretKeys[i] = utxo.EphemeralReceiverSecretKey[i]
-	}
+// 	for i := range utxo.EphemeralReceiverSecretKey {
+// 		ephemeralReceiverSecretKeys[i] = utxo.EphemeralReceiverSecretKey[i]
+// 	}
 
-	for i := range utxo.EphemeralAuditSecretKey {
-		ephemeralAuditSecretKeys[i] = utxo.EphemeralAuditSecretKey[i]
-	}
+// 	for i := range utxo.EphemeralAuditSecretKey {
+// 		ephemeralAuditSecretKeys[i] = utxo.EphemeralAuditSecretKey[i]
+// 	}
 
-	receiverPublicKey := [2]frontend.Variable{
-		utxo.ReceiverPublicKey.X,
-		utxo.ReceiverPublicKey.Y,
-	}
+// 	receiverPublicKey := [2]frontend.Variable{
+// 		utxo.ReceiverPublicKey.X,
+// 		utxo.ReceiverPublicKey.Y,
+// 	}
 
-	auditPublicKey := [2]frontend.Variable{
-		utxo.AuditPublicKey.X,
-		utxo.AuditPublicKey.Y,
-	}
+// 	auditPublicKey := [2]frontend.Variable{
+// 		utxo.AuditPublicKey.X,
+// 		utxo.AuditPublicKey.Y,
+// 	}
 
-	return &circuits.UTXOGadget{
-		AllAsset:                   allAsset,
-		Nullifier:                  nullifiers,
-		Commitment:                 commitments,
-		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
-		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
-		ReceiverPublicKey:          receiverPublicKey,
-		AuditPublicKey:             auditPublicKey,
-		MerkleProofPath:            merkleProofPath,
-		MerkleProofIndex:           merkleProofIndex,
-	}, nil
-}
+// 	return &circuits.UTXOGadget{
+// 		AllAsset:                   allAsset,
+// 		Nullifier:                  nullifiers,
+// 		Commitment:                 commitments,
+// 		EphemeralReceiverSecretKey: ephemeralReceiverSecretKeys,
+// 		EphemeralAuditSecretKey:    ephemeralAuditSecretKeys,
+// 		ReceiverPublicKey:          receiverPublicKey,
+// 		AuditPublicKey:             auditPublicKey,
+// 		MerkleProofPath:            merkleProofPath,
+// 		MerkleProofIndex:           merkleProofIndex,
+// 	}, nil
+// }
 
-func addToAssetMapping(assetMapping map[fr.Element]*fr.Element, asset fr.Element, amount fr.Element) {
-	if _, ok := assetMapping[asset]; !ok {
-		assetMapping[asset] = &amount
-	} else {
-		assetMapping[asset].Add(assetMapping[asset], &amount)
-	}
-}
+// func addToAssetMapping(assetMapping map[fr.Element]*fr.Element, asset fr.Element, amount fr.Element) {
+// 	if _, ok := assetMapping[asset]; !ok {
+// 		assetMapping[asset] = &amount
+// 	} else {
+// 		assetMapping[asset].Add(assetMapping[asset], &amount)
+// 	}
+// }
 
-func (utxo *UTXO) BuildAndCheck() (*UTXOResult, error) {
-	nullifiers := make([]fr.Element, len(utxo.Nullifier))
-	commitments := make([]UTXOCommitment, len(utxo.Commitment))
+// func (utxo *UTXO) BuildAndCheck(spentKey fr.Element) (*UTXOResult, error) {
+// 	nullifiers := make([]fr.Element, len(utxo.Nullifier))
+// 	commitments := make([]UTXOCommitment, len(utxo.Commitment))
 
-	allAssetInput := make(map[fr.Element]*fr.Element)
+// 	allAssetInput := make(map[fr.Element]*fr.Element)
 
-	currentRoot := fr.NewElement(0)
+// 	currentRoot := fr.NewElement(0)
 
-	for i := range utxo.Nullifier {
-		utxoNullifier := utxo.Nullifier[i]
+// 	for i := range utxo.Nullifier {
+// 		utxoNullifier := utxo.Nullifier[i]
 
-		// zero := fr.NewElement(0)
-		// if utxoNullifier.Amount.Cmp(&zero) != 1 {
-		// 	return nil, fmt.Errorf("nullifier must be greater than 0")
-		// }
+// 		// zero := fr.NewElement(0)
+// 		// if utxoNullifier.Amount.Cmp(&zero) != 1 {
+// 		// 	return nil, fmt.Errorf("nullifier must be greater than 0")
+// 		// }
 
-		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
+// 		addToAssetMapping(allAssetInput, utxoNullifier.Asset, utxoNullifier.Amount)
 
-		nullifiers[i] = utxoNullifier.Compute()
+// 		nullifiers[i] = utxoNullifier.Compute()
 
-		merkleProof := utxo.MerkleProof[i]
-		merkleRoot := merkleProof.Verify()
+// 		merkleProof := utxo.MerkleProof[i]
+// 		merkleRoot := merkleProof.Verify()
 
-		if currentRoot.IsZero() {
-			currentRoot = merkleRoot
-		} else {
-			if currentRoot.Cmp(&merkleRoot) != 0 {
-				return nil, fmt.Errorf("merkle root mismatch")
-			}
-		}
-	}
+// 		if currentRoot.IsZero() {
+// 			currentRoot = merkleRoot
+// 		} else {
+// 			if currentRoot.Cmp(&merkleRoot) != 0 {
+// 				return nil, fmt.Errorf("merkle root mismatch")
+// 			}
+// 		}
+// 	}
 
-	result := UTXOResult{
-		Nullifiers:  nullifiers,
-		Commitments: commitments,
-		Root:        currentRoot,
-	}
+// 	result := UTXOResult{
+// 		Nullifiers:  nullifiers,
+// 		Commitments: commitments,
+// 		Root:        currentRoot,
+// 	}
 
-	allAssetOutput := make(map[fr.Element]*fr.Element)
+// 	allAssetOutput := make(map[fr.Element]*fr.Element)
 
-	for i := range utxo.Commitment {
-		utxoCommitment := utxo.Commitment[i]
+// 	for i := range utxo.Commitment {
+// 		utxoCommitment := utxo.Commitment[i]
 
-		zero := fr.NewElement(0)
-		if utxoCommitment.Amount.Cmp(&zero) != 1 {
-			return nil, fmt.Errorf("commitment must be greater than 0")
-		}
+// 		zero := fr.NewElement(0)
+// 		if utxoCommitment.Amount.Cmp(&zero) != 1 {
+// 			return nil, fmt.Errorf("commitment must be greater than 0")
+// 		}
 
-		addToAssetMapping(allAssetOutput, utxoCommitment.Asset, utxoCommitment.Amount)
+// 		addToAssetMapping(allAssetOutput, utxoCommitment.Asset, utxoCommitment.Amount)
 
-		commitment := utxoCommitment.Compute()
+// 		commitment := utxoCommitment.Compute()
 
-		ownerMemo := Memo{
-			SecretKey: utxo.EphemeralReceiverSecretKey[i],
-			PublicKey: utxo.ReceiverPublicKey,
-		}
+// 		ownerMemo := Memo{
+// 			SecretKey: utxo.EphemeralReceiverSecretKey[i],
+// 			PublicKey: utxo.ReceiverPublicKey,
+// 		}
 
-		ownerMemoEphemeralPublickKey, ownerMemoCiphertext, err := ownerMemo.Encrypt(utxoCommitment)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encrypt owner memo: %w", err)
-		}
+// 		ownerMemoEphemeralPublickKey, ownerMemoCiphertext, err := ownerMemo.Encrypt(utxoCommitment, spentKey)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to encrypt owner memo: %w", err)
+// 		}
 
-		ownerMemoData := [3]fr.Element{
-			ownerMemoCiphertext[0],
-			ownerMemoCiphertext[1],
-			ownerMemoCiphertext[2],
-		}
-		ownerHMAC := ownerMemoCiphertext[3]
+// 		ownerMemoData := [3]fr.Element{
+// 			ownerMemoCiphertext[0],
+// 			ownerMemoCiphertext[1],
+// 			ownerMemoCiphertext[2],
+// 		}
+// 		ownerHMAC := ownerMemoCiphertext[3]
 
-		auditMemo := Memo{
-			SecretKey: utxo.EphemeralAuditSecretKey[i],
-			PublicKey: utxo.AuditPublicKey,
-		}
+// 		auditMemo := Memo{
+// 			SecretKey: utxo.EphemeralAuditSecretKey[i],
+// 			PublicKey: utxo.AuditPublicKey,
+// 		}
 
-		auditMemoEphemeralPublickKey, auditMemoCiphertext, err := auditMemo.Encrypt(utxoCommitment)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encrypt audit memo: %w", err)
-		}
+// 		auditMemoEphemeralPublickKey, auditMemoCiphertext, err := auditMemo.Encrypt(utxoCommitment, spentKey)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to encrypt audit memo: %w", err)
+// 		}
 
-		auditMemoData := [3]fr.Element{
-			auditMemoCiphertext[0],
-			auditMemoCiphertext[1],
-			auditMemoCiphertext[2],
-		}
-		auditHMAC := auditMemoCiphertext[3]
+// 		auditMemoData := [3]fr.Element{
+// 			auditMemoCiphertext[0],
+// 			auditMemoCiphertext[1],
+// 			auditMemoCiphertext[2],
+// 		}
+// 		auditHMAC := auditMemoCiphertext[3]
 
-		commitments[i] = UTXOCommitment{
-			Commitment:               commitment,
-			OwnerMemo:                ownerMemoData,
-			OwnerHMAC:                ownerHMAC,
-			OwnerEphemeralPublickKey: *ownerMemoEphemeralPublickKey,
-			AuditMemo:                auditMemoData,
-			AuditHMAC:                auditHMAC,
-			AuditEphemeralPublickKey: *auditMemoEphemeralPublickKey,
-		}
-	}
+// 		commitments[i] = UTXOCommitment{
+// 			Commitment:               commitment,
+// 			OwnerMemo:                ownerMemoData,
+// 			OwnerHMAC:                ownerHMAC,
+// 			OwnerEphemeralPublickKey: *ownerMemoEphemeralPublickKey,
+// 			AuditMemo:                auditMemoData,
+// 			AuditHMAC:                auditHMAC,
+// 			AuditEphemeralPublickKey: *auditMemoEphemeralPublickKey,
+// 		}
+// 	}
 
-	if !reflect.DeepEqual(allAssetInput, allAssetOutput) {
-		return nil, fmt.Errorf("input and output asset mapping must be the same")
-	}
+// 	if !reflect.DeepEqual(allAssetInput, allAssetOutput) {
+// 		return nil, fmt.Errorf("input and output asset mapping must be the same")
+// 	}
 
-	for asset := range allAssetInput {
-		result.AllAsset = append(result.AllAsset, asset)
-	}
+// 	for asset := range allAssetInput {
+// 		result.AllAsset = append(result.AllAsset, asset)
+// 	}
 
-	return &result, nil
-}
+// 	return &result, nil
+// }
 
-func NewUTXOCircuitWitness(utxo *UTXO, utxoResult *UTXOResult) (*circuits.UTXOCircuit, error) {
-	allAsset := make([]frontend.Variable, len(utxoResult.AllAsset))
+// func NewUTXOCircuitWitness(utxo *UTXO, utxoResult *UTXOResult) (*circuits.UTXOCircuit, error) {
+// 	allAsset := make([]frontend.Variable, len(utxoResult.AllAsset))
 
-	for i := range utxoResult.AllAsset {
-		allAsset[i] = utxoResult.AllAsset[i]
-	}
+// 	for i := range utxoResult.AllAsset {
+// 		allAsset[i] = utxoResult.AllAsset[i]
+// 	}
 
-	utxoGadget, err := utxo.ToGadget(allAsset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert UTXO to gadget: %w", err)
-	}
+// 	utxoGadget, err := utxo.ToGadget(allAsset)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to convert UTXO to gadget: %w", err)
+// 	}
 
-	return &circuits.UTXOCircuit{
-		UTXO:   *utxoGadget,
-		Result: *utxoResult.ToGadget(),
-	}, nil
-}
+// 	return &circuits.UTXOCircuit{
+// 		UTXO:   *utxoGadget,
+// 		Result: *utxoResult.ToGadget(),
+// 	}, nil
+// }

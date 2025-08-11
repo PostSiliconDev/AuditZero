@@ -2,50 +2,14 @@ package builder_test
 
 import (
 	"hide-pay/builder"
-	"hide-pay/utils"
-	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/stretchr/testify/assert"
 )
 
-func GenerateCommitment(seed int64) *builder.Commitment {
-	rnd := rand.New(rand.NewSource(seed))
-
-	max := new(big.Int).Lsh(big.NewInt(1), 254)
-
-	ownerSecKey := new(big.Int).Rand(rnd, max)
-	ownerPubKey := utils.BuildPublicKey(*ownerSecKey)
-
-	viewSecKey := new(big.Int).Rand(rnd, max)
-	viewPubKey := utils.BuildPublicKey(*viewSecKey)
-
-	auditSecKey := new(big.Int).Rand(rnd, max)
-	auditPubKey := utils.BuildPublicKey(*auditSecKey)
-
-	amount := rnd.Uint64()
-	asset := rnd.Uint64()
-	blinding := rnd.Uint64()
-
-	spentSecKey := new(big.Int).Rand(rnd, max)
-	spentAddress := utils.BuildAddress(*spentSecKey)
-
-	return &builder.Commitment{
-		Asset:        fr.NewElement(asset),
-		Amount:       fr.NewElement(amount),
-		OwnerPubKey:  ownerPubKey,
-		SpentAddress: spentAddress,
-		ViewPubKey:   viewPubKey,
-		AuditPubKey:  auditPubKey,
-		FreezeFlag:   fr.NewElement(0),
-		Blinding:     fr.NewElement(blinding),
-	}
-}
-
 func TestCommitment_Compute(t *testing.T) {
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	result := commitment.Compute()
 
@@ -56,10 +20,10 @@ func TestCommitment_Compute(t *testing.T) {
 }
 
 func TestCommitment_Compute_DifferentInputs(t *testing.T) {
-	commitment1 := GenerateCommitment(12345)
-	commitment2 := GenerateCommitment(54321)
-	commitment3 := GenerateCommitment(11111)
-	commitment4 := GenerateCommitment(22222)
+	commitment1, _ := builder.GenerateCommitment(12345)
+	commitment2, _ := builder.GenerateCommitment(54321)
+	commitment3, _ := builder.GenerateCommitment(11111)
+	commitment4, _ := builder.GenerateCommitment(22222)
 
 	result1 := commitment1.Compute()
 	result2 := commitment2.Compute()
@@ -76,7 +40,7 @@ func TestCommitment_Compute_DifferentInputs(t *testing.T) {
 }
 
 func TestCommitment_Compute_Deterministic(t *testing.T) {
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	result1 := commitment.Compute()
 	result2 := commitment.Compute()
@@ -88,13 +52,13 @@ func TestCommitment_Compute_Deterministic(t *testing.T) {
 }
 
 func TestCommitment_Compute_ZeroValues(t *testing.T) {
-	commitment := GenerateCommitment(0)
+	commitment, _ := builder.GenerateCommitment(0)
 	result := commitment.Compute()
 	assert.NotEqual(t, fr.Element{}, result) // Even with all zero inputs, commitment should not be zero
 }
 
 func TestCommitment_ToCircuit_Consistency(t *testing.T) {
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	witness1 := commitment.ToGadget()
 	witness2 := commitment.ToGadget()

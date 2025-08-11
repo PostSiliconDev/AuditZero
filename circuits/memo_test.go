@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/require"
@@ -58,16 +57,12 @@ func TestMemo_ToCircuit(t *testing.T) {
 		PublicKey: receiverPublicKey,
 	}
 
-	commitment := &builder.Commitment{
-		Asset:    fr.NewElement(12345),
-		Amount:   fr.NewElement(67890),
-		Blinding: fr.NewElement(11111),
-	}
+	commitment, spentKey := builder.GenerateCommitment(12345)
 
-	_, ownerMemo, err := memo.Encrypt(*commitment)
+	_, ownerMemo, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
-	_, auditMemo, err := memo.Encrypt(*commitment)
+	_, auditMemo, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
 	circuit := MemoCircuit{}

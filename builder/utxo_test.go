@@ -1,127 +1,116 @@
 package builder_test
 
-import (
-	"hide-pay/builder"
-	"hide-pay/utils"
-	"math/big"
-	"testing"
+// func TestUTXO_BuildAndCheck(t *testing.T) {
+// 	receiverSecretKey := big.NewInt(11111)
+// 	auditSecretKey := big.NewInt(22222)
 
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
-	"github.com/stretchr/testify/assert"
-)
+// 	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
+// 	auditPublicKey := utils.BuildPublicKey(*auditSecretKey)
 
-func TestUTXO_BuildAndCheck(t *testing.T) {
-	receiverSecretKey := big.NewInt(11111)
-	auditSecretKey := big.NewInt(22222)
+// 	nullifier1 := builder.Nullifier{
+// 		Commitment: builder.Commitment{
+// 			Asset:    fr.NewElement(1),
+// 			Amount:   fr.NewElement(2),
+// 			Blinding: fr.NewElement(3),
+// 		},
+// 		SpentPrivateKey: fr.NewElement(1),
+// 	}
 
-	receiverPublicKey := utils.BuildPublicKey(*receiverSecretKey)
-	auditPublicKey := utils.BuildPublicKey(*auditSecretKey)
+// 	nullifier2 := builder.Nullifier{
+// 		Commitment: builder.Commitment{
+// 			Asset:    fr.NewElement(1),
+// 			Amount:   fr.NewElement(2),
+// 			Blinding: fr.NewElement(4),
+// 		},
+// 		SpentPrivateKey: fr.NewElement(2),
+// 	}
 
-	nullifier1 := builder.Nullifier{
-		Commitment: builder.Commitment{
-			Asset:    fr.NewElement(1),
-			Amount:   fr.NewElement(2),
-			Blinding: fr.NewElement(3),
-		},
-		SpentPrivateKey: fr.NewElement(1),
-	}
+// 	nullifier1_commit := nullifier1.Commitment.Compute()
+// 	nullifier2_commit := nullifier2.Commitment.Compute()
 
-	nullifier2 := builder.Nullifier{
-		Commitment: builder.Commitment{
-			Asset:    fr.NewElement(1),
-			Amount:   fr.NewElement(2),
-			Blinding: fr.NewElement(4),
-		},
-		SpentPrivateKey: fr.NewElement(2),
-	}
+// 	merkleTree := builder.NewMerkleTree(10, poseidon2.NewMerkleDamgardHasher())
+// 	elems := []fr.Element{
+// 		nullifier1_commit,
+// 		nullifier2_commit,
+// 	}
+// 	merkleTree.Build(elems)
 
-	nullifier1_commit := nullifier1.Commitment.Compute()
-	nullifier2_commit := nullifier2.Commitment.Compute()
+// 	merkleProof1 := merkleTree.GetProof(0)
+// 	merkleProof2 := merkleTree.GetProof(1)
 
-	merkleTree := builder.NewMerkleTree(10, poseidon2.NewMerkleDamgardHasher())
-	elems := []fr.Element{
-		nullifier1_commit,
-		nullifier2_commit,
-	}
-	merkleTree.Build(elems)
+// 	utxo := &builder.UTXO{
+// 		Nullifier: []builder.Nullifier{
+// 			nullifier1,
+// 			nullifier2,
+// 		},
+// 		MerkleProof: []builder.MerkleProof{
+// 			merkleProof1,
+// 			merkleProof2,
+// 		},
+// 		Commitment: []builder.Commitment{
+// 			{
+// 				Asset:    fr.NewElement(1),
+// 				Amount:   fr.NewElement(2),
+// 				Blinding: fr.NewElement(3),
+// 			},
+// 			{
+// 				Asset:    fr.NewElement(1),
+// 				Amount:   fr.NewElement(2),
+// 				Blinding: fr.NewElement(3),
+// 			},
+// 		},
+// 		EphemeralReceiverSecretKey: []big.Int{
+// 			*big.NewInt(1),
+// 			*big.NewInt(2),
+// 		},
+// 		EphemeralAuditSecretKey: []big.Int{
+// 			*big.NewInt(3),
+// 			*big.NewInt(4),
+// 		},
+// 		ReceiverPublicKey: receiverPublicKey,
+// 		AuditPublicKey:    auditPublicKey,
+// 	}
 
-	merkleProof1 := merkleTree.GetProof(0)
-	merkleProof2 := merkleTree.GetProof(1)
+// 	result, err := utxo.BuildAndCheck()
+// 	assert.NoError(t, err)
 
-	utxo := &builder.UTXO{
-		Nullifier: []builder.Nullifier{
-			nullifier1,
-			nullifier2,
-		},
-		MerkleProof: []builder.MerkleProof{
-			merkleProof1,
-			merkleProof2,
-		},
-		Commitment: []builder.Commitment{
-			{
-				Asset:    fr.NewElement(1),
-				Amount:   fr.NewElement(2),
-				Blinding: fr.NewElement(3),
-			},
-			{
-				Asset:    fr.NewElement(1),
-				Amount:   fr.NewElement(2),
-				Blinding: fr.NewElement(3),
-			},
-		},
-		EphemeralReceiverSecretKey: []big.Int{
-			*big.NewInt(1),
-			*big.NewInt(2),
-		},
-		EphemeralAuditSecretKey: []big.Int{
-			*big.NewInt(3),
-			*big.NewInt(4),
-		},
-		ReceiverPublicKey: receiverPublicKey,
-		AuditPublicKey:    auditPublicKey,
-	}
+// 	for i := range result.Commitments {
+// 		commitment := result.Commitments[i]
 
-	result, err := utxo.BuildAndCheck()
-	assert.NoError(t, err)
+// 		memo1 := builder.Memo{
+// 			SecretKey: *receiverSecretKey,
+// 			PublicKey: commitment.OwnerEphemeralPublickKey,
+// 		}
 
-	for i := range result.Commitments {
-		commitment := result.Commitments[i]
+// 		ownerMemoCiphertext := []fr.Element{
+// 			commitment.OwnerMemo[0],
+// 			commitment.OwnerMemo[1],
+// 			commitment.OwnerMemo[2],
+// 			commitment.OwnerHMAC,
+// 		}
 
-		memo1 := builder.Memo{
-			SecretKey: *receiverSecretKey,
-			PublicKey: commitment.OwnerEphemeralPublickKey,
-		}
+// 		decryptedOwnerMemo, err := memo1.Decrypt(ownerMemoCiphertext)
+// 		assert.NoError(t, err)
+// 		assert.Equal(t, decryptedOwnerMemo.Asset, utxo.Commitment[i].Asset)
+// 		assert.Equal(t, decryptedOwnerMemo.Amount, utxo.Commitment[i].Amount)
+// 		assert.Equal(t, decryptedOwnerMemo.Blinding, utxo.Commitment[i].Blinding)
 
-		ownerMemoCiphertext := []fr.Element{
-			commitment.OwnerMemo[0],
-			commitment.OwnerMemo[1],
-			commitment.OwnerMemo[2],
-			commitment.OwnerHMAC,
-		}
+// 		memo2 := builder.Memo{
+// 			SecretKey: *auditSecretKey,
+// 			PublicKey: commitment.AuditEphemeralPublickKey,
+// 		}
 
-		decryptedOwnerMemo, err := memo1.Decrypt(ownerMemoCiphertext)
-		assert.NoError(t, err)
-		assert.Equal(t, decryptedOwnerMemo.Asset, utxo.Commitment[i].Asset)
-		assert.Equal(t, decryptedOwnerMemo.Amount, utxo.Commitment[i].Amount)
-		assert.Equal(t, decryptedOwnerMemo.Blinding, utxo.Commitment[i].Blinding)
+// 		auditMemoCiphertext := []fr.Element{
+// 			commitment.AuditMemo[0],
+// 			commitment.AuditMemo[1],
+// 			commitment.AuditMemo[2],
+// 			commitment.AuditHMAC,
+// 		}
 
-		memo2 := builder.Memo{
-			SecretKey: *auditSecretKey,
-			PublicKey: commitment.AuditEphemeralPublickKey,
-		}
-
-		auditMemoCiphertext := []fr.Element{
-			commitment.AuditMemo[0],
-			commitment.AuditMemo[1],
-			commitment.AuditMemo[2],
-			commitment.AuditHMAC,
-		}
-
-		decryptedAuditMemo, err := memo2.Decrypt(auditMemoCiphertext)
-		assert.NoError(t, err)
-		assert.Equal(t, decryptedAuditMemo.Asset, utxo.Commitment[i].Asset)
-		assert.Equal(t, decryptedAuditMemo.Amount, utxo.Commitment[i].Amount)
-		assert.Equal(t, decryptedAuditMemo.Blinding, utxo.Commitment[i].Blinding)
-	}
-}
+// 		decryptedAuditMemo, err := memo2.Decrypt(auditMemoCiphertext)
+// 		assert.NoError(t, err)
+// 		assert.Equal(t, decryptedAuditMemo.Asset, utxo.Commitment[i].Asset)
+// 		assert.Equal(t, decryptedAuditMemo.Amount, utxo.Commitment[i].Amount)
+// 		assert.Equal(t, decryptedAuditMemo.Blinding, utxo.Commitment[i].Blinding)
+// 	}
+// }
