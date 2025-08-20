@@ -1,158 +1,150 @@
 package circuits
 
-import (
-	"fmt"
-	"hide-pay/utils"
+// type UTXOGadget struct {
+// 	AllAsset []frontend.Variable `gnark:"allAsset"`
 
-	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/rangecheck"
-)
+// 	Nullifier []NullifierGadget `gnark:"nullifier"`
 
-type UTXOGadget struct {
-	AllAsset []frontend.Variable `gnark:"allAsset"`
+// 	Commitment []CommitmentGadget `gnark:"commitment"`
 
-	Nullifier []NullifierGadget `gnark:"nullifier"`
+// 	EphemeralReceiverSecretKey []frontend.Variable  `gnark:"ephemeralReceiverSecretKey"`
+// 	EphemeralAuditSecretKey    []frontend.Variable  `gnark:"ephemeralAuditSecretKey"`
+// 	ReceiverPublicKey          [2]frontend.Variable `gnark:"receiverPublicKey"`
+// 	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
 
-	Commitment []CommitmentGadget `gnark:"commitment"`
+// 	MerkleProofPath  []frontend.Variable `gnark:"merkleProofPath"`
+// 	MerkleProofIndex []frontend.Variable `gnark:"merkleProofIndex"`
+// }
 
-	EphemeralReceiverSecretKey []frontend.Variable  `gnark:"ephemeralReceiverSecretKey"`
-	EphemeralAuditSecretKey    []frontend.Variable  `gnark:"ephemeralAuditSecretKey"`
-	ReceiverPublicKey          [2]frontend.Variable `gnark:"receiverPublicKey"`
-	AuditPublicKey             [2]frontend.Variable `gnark:"auditPublicKey"`
+// func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOGadget {
 
-	MerkleProofPath  []frontend.Variable `gnark:"merkleProofPath"`
-	MerkleProofIndex []frontend.Variable `gnark:"merkleProofIndex"`
-}
+// 	return &UTXOGadget{
+// 		AllAsset: make([]frontend.Variable, allAssetSize),
 
-func NewUTXOGadget(allAssetSize int, depth int, nullifierSize int, commitmentSize int) *UTXOGadget {
+// 		Nullifier:        make([]NullifierGadget, nullifierSize),
+// 		MerkleProofPath:  make([]frontend.Variable, nullifierSize*depth),
+// 		MerkleProofIndex: make([]frontend.Variable, nullifierSize),
 
-	return &UTXOGadget{
-		AllAsset: make([]frontend.Variable, allAssetSize),
+// 		Commitment:                 make([]CommitmentGadget, commitmentSize),
+// 		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
+// 		EphemeralAuditSecretKey:    make([]frontend.Variable, commitmentSize),
+// 	}
+// }
 
-		Nullifier:        make([]NullifierGadget, nullifierSize),
-		MerkleProofPath:  make([]frontend.Variable, nullifierSize*depth),
-		MerkleProofIndex: make([]frontend.Variable, nullifierSize),
+// func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, error) {
+// 	nullifiers := make([]frontend.Variable, len(gadget.Nullifier))
+// 	commitments := make([]frontend.Variable, len(gadget.Commitment))
 
-		Commitment:                 make([]CommitmentGadget, commitmentSize),
-		EphemeralReceiverSecretKey: make([]frontend.Variable, commitmentSize),
-		EphemeralAuditSecretKey:    make([]frontend.Variable, commitmentSize),
-	}
-}
+// 	// Check that the number of nullifiers, commitments, and ephemeral secret keys are the same
+// 	if len(gadget.Commitment) != len(gadget.EphemeralReceiverSecretKey) || len(gadget.Commitment) != len(gadget.EphemeralAuditSecretKey) {
+// 		return nil, fmt.Errorf("number of nullifiers, commitments, and ephemeral receiver and audit secret keys must be the same")
+// 	}
 
-func (gadget *UTXOGadget) BuildAndCheck(api frontend.API) (*UTXOResultGadget, error) {
-	nullifiers := make([]frontend.Variable, len(gadget.Nullifier))
-	commitments := make([]frontend.Variable, len(gadget.Commitment))
+// 	inputAmounts := make([]frontend.Variable, len(gadget.AllAsset))
 
-	// Check that the number of nullifiers, commitments, and ephemeral secret keys are the same
-	if len(gadget.Commitment) != len(gadget.EphemeralReceiverSecretKey) || len(gadget.Commitment) != len(gadget.EphemeralAuditSecretKey) {
-		return nil, fmt.Errorf("number of nullifiers, commitments, and ephemeral receiver and audit secret keys must be the same")
-	}
+// 	for i := range gadget.AllAsset {
+// 		inputAmounts[i] = 0
+// 	}
 
-	inputAmounts := make([]frontend.Variable, len(gadget.AllAsset))
+// 	merkleRoot := make([]frontend.Variable, len(gadget.Nullifier))
 
-	for i := range gadget.AllAsset {
-		inputAmounts[i] = 0
-	}
+// 	depth := len(gadget.MerkleProofPath) / len(gadget.Nullifier)
 
-	merkleRoot := make([]frontend.Variable, len(gadget.Nullifier))
+// 	for i := range gadget.Nullifier {
+// 		gadgetNullifier := gadget.Nullifier[i]
 
-	depth := len(gadget.MerkleProofPath) / len(gadget.Nullifier)
+// 		rangerChecker := rangecheck.New(api)
+// 		rangerChecker.Check(gadgetNullifier.Amount, 253)
 
-	for i := range gadget.Nullifier {
-		gadgetNullifier := gadget.Nullifier[i]
+// 		hasher, err := utils.NewPoseidonHasher(api)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
+// 		}
 
-		rangerChecker := rangecheck.New(api)
-		rangerChecker.Check(gadgetNullifier.Amount, 253)
+// 		// TODO: Check nullifier is in merkle tree
+// 		merkleProof := MerkleProofGadget{
+// 			Path: gadget.MerkleProofPath[i*depth : (i+1)*depth],
+// 			Leaf: gadget.MerkleProofIndex[i],
+// 		}
 
-		hasher, err := utils.NewPoseidonHasher(api)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create poseidon hasher: %w", err)
-		}
+// 		merkleRoot[i] = merkleProof.VerifyProof(api, hasher)
 
-		// TODO: Check nullifier is in merkle tree
-		merkleProof := MerkleProofGadget{
-			Path: gadget.MerkleProofPath[i*depth : (i+1)*depth],
-			Leaf: gadget.MerkleProofIndex[i],
-		}
+// 		for j := range gadget.AllAsset {
+// 			diff := api.Sub(gadget.AllAsset[j], gadgetNullifier.Asset)
+// 			isZero := api.IsZero(diff)
+// 			inputAmounts[j] = api.Add(inputAmounts[j], api.Mul(gadgetNullifier.Amount, isZero))
+// 		}
 
-		merkleRoot[i] = merkleProof.VerifyProof(api, hasher)
+// 		nullifier, err := gadgetNullifier.Compute(api)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to compute nullifier: %w", err)
+// 		}
+// 		nullifiers[i] = nullifier
+// 	}
 
-		for j := range gadget.AllAsset {
-			diff := api.Sub(gadget.AllAsset[j], gadgetNullifier.Asset)
-			isZero := api.IsZero(diff)
-			inputAmounts[j] = api.Add(inputAmounts[j], api.Mul(gadgetNullifier.Amount, isZero))
-		}
+// 	for i := range merkleRoot {
+// 		api.AssertIsEqual(merkleRoot[i], merkleRoot[0])
+// 	}
 
-		nullifier, err := gadgetNullifier.Compute(api)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compute nullifier: %w", err)
-		}
-		nullifiers[i] = nullifier
-	}
+// 	ownerMemoHashes := make([]frontend.Variable, len(gadget.EphemeralReceiverSecretKey))
+// 	auditMemoHashes := make([]frontend.Variable, len(gadget.EphemeralAuditSecretKey))
 
-	for i := range merkleRoot {
-		api.AssertIsEqual(merkleRoot[i], merkleRoot[0])
-	}
+// 	outputAmounts := make([]frontend.Variable, len(gadget.AllAsset))
 
-	ownerMemoHashes := make([]frontend.Variable, len(gadget.EphemeralReceiverSecretKey))
-	auditMemoHashes := make([]frontend.Variable, len(gadget.EphemeralAuditSecretKey))
+// 	for i := range gadget.AllAsset {
+// 		outputAmounts[i] = 0
+// 	}
 
-	outputAmounts := make([]frontend.Variable, len(gadget.AllAsset))
+// 	for i := range gadget.Commitment {
+// 		gadgetCommitment := gadget.Commitment[i]
 
-	for i := range gadget.AllAsset {
-		outputAmounts[i] = 0
-	}
+// 		rangerChecker := rangecheck.New(api)
+// 		rangerChecker.Check(gadgetCommitment.Amount, 253)
 
-	for i := range gadget.Commitment {
-		gadgetCommitment := gadget.Commitment[i]
+// 		for j := range gadget.AllAsset {
+// 			diff := api.Sub(gadget.AllAsset[j], gadgetCommitment.Asset)
+// 			isZero := api.IsZero(diff)
+// 			outputAmounts[j] = api.Add(outputAmounts[j], api.Mul(gadgetCommitment.Amount, isZero))
+// 		}
 
-		rangerChecker := rangecheck.New(api)
-		rangerChecker.Check(gadgetCommitment.Amount, 253)
+// 		commitment, err := gadgetCommitment.Compute(api)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to compute commitment: %w", err)
+// 		}
+// 		commitments[i] = commitment
 
-		for j := range gadget.AllAsset {
-			diff := api.Sub(gadget.AllAsset[j], gadgetCommitment.Asset)
-			isZero := api.IsZero(diff)
-			outputAmounts[j] = api.Add(outputAmounts[j], api.Mul(gadgetCommitment.Amount, isZero))
-		}
+// 		ownerMemoGadget := MemoGadget{
+// 			EphemeralSecretKey: gadget.EphemeralReceiverSecretKey[i],
+// 			ReceiverPublicKey:  gadget.ReceiverPublicKey,
+// 		}
 
-		commitment, err := gadgetCommitment.Compute(api)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compute commitment: %w", err)
-		}
-		commitments[i] = commitment
+// 		ownerMemoHash, err := ownerMemoGadget.Generate(api, gadgetCommitment)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to generate owner memo: %w", err)
+// 		}
+// 		ownerMemoHashes[i] = ownerMemoHash
 
-		ownerMemoGadget := MemoGadget{
-			EphemeralSecretKey: gadget.EphemeralReceiverSecretKey[i],
-			ReceiverPublicKey:  gadget.ReceiverPublicKey,
-		}
+// 		auditMemoGadget := MemoGadget{
+// 			EphemeralSecretKey: gadget.EphemeralAuditSecretKey[i],
+// 			ReceiverPublicKey:  gadget.AuditPublicKey,
+// 		}
 
-		ownerMemoHash, err := ownerMemoGadget.Generate(api, gadgetCommitment)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate owner memo: %w", err)
-		}
-		ownerMemoHashes[i] = ownerMemoHash
+// 		auditMemoHash, err := auditMemoGadget.Generate(api, gadgetCommitment)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to generate audit memo: %w", err)
+// 		}
+// 		auditMemoHashes[i] = auditMemoHash
+// 	}
 
-		auditMemoGadget := MemoGadget{
-			EphemeralSecretKey: gadget.EphemeralAuditSecretKey[i],
-			ReceiverPublicKey:  gadget.AuditPublicKey,
-		}
+// 	for i := range inputAmounts {
+// 		api.AssertIsEqual(inputAmounts[i], outputAmounts[i])
+// 	}
 
-		auditMemoHash, err := auditMemoGadget.Generate(api, gadgetCommitment)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate audit memo: %w", err)
-		}
-		auditMemoHashes[i] = auditMemoHash
-	}
-
-	for i := range inputAmounts {
-		api.AssertIsEqual(inputAmounts[i], outputAmounts[i])
-	}
-
-	return &UTXOResultGadget{
-		Nullifiers:      nullifiers,
-		Commitments:     commitments,
-		OwnerMemoHashes: ownerMemoHashes,
-		AuditMemoHashes: auditMemoHashes,
-		MerkleRoot:      merkleRoot[0],
-	}, nil
-}
+// 	return &UTXOResultGadget{
+// 		Nullifiers:      nullifiers,
+// 		Commitments:     commitments,
+// 		OwnerMemoHashes: ownerMemoHashes,
+// 		AuditMemoHashes: auditMemoHashes,
+// 		MerkleRoot:      merkleRoot[0],
+// 	}, nil
+// }

@@ -3,6 +3,7 @@ package builder
 import (
 	"fmt"
 	"hide-pay/circuits"
+	"hide-pay/utils"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -22,7 +23,7 @@ func (memo *Memo) ToGadget() *circuits.MemoGadget {
 	}
 }
 
-func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffine, []fr.Element, error) {
+func (memo *Memo) Encrypt(commitment Commitment, spentKey fr.Element) (*twistededwardbn254.PointAffine, []fr.Element, error) {
 	ecdh := ECDH{
 		PublicKey: memo.PublicKey,
 		SecretKey: memo.SecretKey,
@@ -45,16 +46,15 @@ func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffin
 	plaintext := []fr.Element{
 		commitment.Asset,
 		commitment.Amount,
+		commitment.Blinding,
 		commitment.OwnerPubKey.X,
 		commitment.OwnerPubKey.Y,
-		commitment.SpentAddress,
+		spentKey,
 		commitment.ViewPubKey.X,
 		commitment.ViewPubKey.Y,
 		commitment.AuditPubKey.X,
 		commitment.AuditPubKey.Y,
-		commitment.FreezeAddress,
 		commitment.FreezeFlag,
-		commitment.Blinding,
 	}
 
 	ciphertext, err := streamCipher.Encrypt(ad, plaintext)
@@ -65,7 +65,7 @@ func (memo *Memo) Encrypt(commitment Commitment) (*twistededwardbn254.PointAffin
 	return ephemeralPublicKey, ciphertext, nil
 }
 
-func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
+func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, *fr.Element, error) {
 	ecdh := ECDH{
 		PublicKey: memo.PublicKey,
 		SecretKey: memo.SecretKey,
@@ -84,8 +84,11 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
 
 	plaintext, err := streamCipher.Decrypt(ad, ciphertext)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt: %w", err)
+		return nil, nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
+
+	spentAddressBigInt := plaintext[5].BigInt(new(big.Int))
+	spentAddress := utils.BuildAddress(*spentAddressBigInt)
 
 	return &Commitment{
 		Asset:    plaintext[0],
@@ -95,7 +98,7 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
 			X: plaintext[3],
 			Y: plaintext[4],
 		},
-		SpentAddress: plaintext[5],
+		SpentAddress: spentAddress,
 		ViewPubKey: twistededwardbn254.PointAffine{
 			X: plaintext[6],
 			Y: plaintext[7],
@@ -104,7 +107,6 @@ func (memo *Memo) Decrypt(ciphertext []fr.Element) (*Commitment, error) {
 			X: plaintext[8],
 			Y: plaintext[9],
 		},
-		FreezeAddress: plaintext[10],
-		FreezeFlag:    plaintext[11],
-	}, nil
+		FreezeFlag: plaintext[10],
+	}, &plaintext[5], nil
 }

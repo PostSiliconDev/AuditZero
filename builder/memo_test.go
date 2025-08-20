@@ -19,9 +19,9 @@ func TestMemo_Encrypt(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment := GenerateCommitment(12345)
+	commitment, spentKey := builder.GenerateCommitment(12345)
 
-	_, ciphertext, err := memo.Encrypt(*commitment)
+	_, ciphertext, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 	require.NotNil(t, ciphertext)
 	assert.NotEmpty(t, ciphertext)
@@ -39,14 +39,14 @@ func TestMemo_Encrypt_DifferentInputs(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment1 := GenerateCommitment(12345)
+	commitment1, spentKey1 := builder.GenerateCommitment(12345)
 
-	commitment2 := GenerateCommitment(54321)
+	commitment2, spentKey2 := builder.GenerateCommitment(54321)
 
-	_, ciphertext1, err := memo.Encrypt(*commitment1)
+	_, ciphertext1, err := memo.Encrypt(*commitment1, *spentKey1)
 	require.NoError(t, err)
 
-	_, ciphertext2, err := memo.Encrypt(*commitment2)
+	_, ciphertext2, err := memo.Encrypt(*commitment2, *spentKey2)
 	require.NoError(t, err)
 
 	// Ciphertexts should be different
@@ -60,15 +60,15 @@ func TestMemo_Encrypt_Deterministic(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	commitment := GenerateCommitment(12345)
+	commitment, spentKey := builder.GenerateCommitment(12345)
 
-	_, ciphertext1, err := memo.Encrypt(*commitment)
+	_, ciphertext1, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
-	_, ciphertext2, err := memo.Encrypt(*commitment)
+	_, ciphertext2, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
-	_, ciphertext3, err := memo.Encrypt(*commitment)
+	_, ciphertext3, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
 	// All ciphertexts should be the same
@@ -84,14 +84,14 @@ func TestMemo_Decrypt(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(11111)),
 	}
 
-	originalCommitment := GenerateCommitment(12345)
+	originalCommitment, spentKey := builder.GenerateCommitment(12345)
 
 	// Encrypt first
-	_, ciphertext, err := memo.Encrypt(*originalCommitment)
+	_, ciphertext, err := memo.Encrypt(*originalCommitment, *spentKey)
 	require.NoError(t, err)
 
 	// Then decrypt
-	decryptedCommitment, err := memo.Decrypt(ciphertext)
+	decryptedCommitment, _, err := memo.Decrypt(ciphertext)
 	require.NoError(t, err)
 	require.NotNil(t, decryptedCommitment)
 
@@ -115,7 +115,7 @@ func TestMemo_Decrypt_InvalidCiphertext(t *testing.T) {
 		// Missing elements
 	}
 
-	_, err := memo.Decrypt(invalidCiphertext)
+	_, _, err := memo.Decrypt(invalidCiphertext)
 	assert.Error(t, err)
 }
 
@@ -131,14 +131,14 @@ func TestMemo_Decrypt_WrongKey(t *testing.T) {
 		PublicKey: utils.BuildPublicKey(*big.NewInt(99999)),
 	}
 
-	commitment := GenerateCommitment(12345)
+	commitment, spentKey := builder.GenerateCommitment(12345)
 
 	// Encrypt with memo1
-	_, ciphertext, err := memo1.Encrypt(*commitment)
+	_, ciphertext, err := memo1.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
 	// Try to decrypt with memo2 (wrong key)
-	_, err = memo2.Decrypt(ciphertext)
+	_, _, err = memo2.Decrypt(ciphertext)
 
 	assert.Error(t, err)
 }

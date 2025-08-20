@@ -10,7 +10,7 @@ import (
 
 func TestNullifier_Compute(t *testing.T) {
 	// Test basic nullifier computation
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	nullifier := &builder.Nullifier{
 		Commitment:      *commitment,
@@ -28,7 +28,7 @@ func TestNullifier_Compute(t *testing.T) {
 
 func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 	// Test that different inputs produce different nullifiers
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	base := &builder.Nullifier{
 		Commitment:      *commitment,
@@ -96,7 +96,7 @@ func TestNullifier_Compute_DifferentInputs(t *testing.T) {
 
 func TestNullifier_Compute_Deterministic(t *testing.T) {
 	// Test that same inputs produce same nullifier (deterministic)
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	nullifier := &builder.Nullifier{
 		Commitment:      *commitment,
@@ -114,7 +114,7 @@ func TestNullifier_Compute_Deterministic(t *testing.T) {
 
 func TestNullifier_Compute_ZeroValues(t *testing.T) {
 	// Test zero value inputs
-	commitment := GenerateCommitment(0)
+	commitment, _ := builder.GenerateCommitment(0)
 
 	nullifier := &builder.Nullifier{
 		Commitment:      *commitment,
@@ -127,7 +127,7 @@ func TestNullifier_Compute_ZeroValues(t *testing.T) {
 
 func TestNullifier_ToWitness(t *testing.T) {
 	// Test conversion to circuit
-	commitment := GenerateCommitment(12345)
+	commitment, _ := builder.GenerateCommitment(12345)
 
 	nullifier := &builder.Nullifier{
 		Commitment:      *commitment,

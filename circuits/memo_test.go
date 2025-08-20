@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	"github.com/stretchr/testify/require"
@@ -58,16 +57,12 @@ func TestMemo_ToCircuit(t *testing.T) {
 		PublicKey: receiverPublicKey,
 	}
 
-	commitment := &builder.Commitment{
-		Asset:    fr.NewElement(12345),
-		Amount:   fr.NewElement(67890),
-		Blinding: fr.NewElement(11111),
-	}
+	commitment, spentKey := builder.GenerateCommitment(12345)
 
-	_, ownerMemo, err := memo.Encrypt(*commitment)
+	_, ownerMemo, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
-	_, auditMemo, err := memo.Encrypt(*commitment)
+	_, auditMemo, err := memo.Encrypt(*commitment, *spentKey)
 	require.NoError(t, err)
 
 	circuit := MemoCircuit{}
@@ -76,15 +71,14 @@ func TestMemo_ToCircuit(t *testing.T) {
 		SecretKey: *secretKey,
 		PublicKey: [2]frontend.Variable{receiverPublicKey.X, receiverPublicKey.Y},
 		Commitment: circuits.CommitmentGadget{
-			Asset:         commitment.Asset,
-			Amount:        commitment.Amount,
-			OwnerPubKey:   [2]frontend.Variable{commitment.OwnerPubKey.X, commitment.OwnerPubKey.Y},
-			SpentAddress:  commitment.SpentAddress,
-			ViewPubKey:    [2]frontend.Variable{commitment.ViewPubKey.X, commitment.ViewPubKey.Y},
-			AuditPubKey:   [2]frontend.Variable{commitment.AuditPubKey.X, commitment.AuditPubKey.Y},
-			FreezeAddress: commitment.FreezeAddress,
-			FreezeFlag:    commitment.FreezeFlag,
-			Blinding:      commitment.Blinding,
+			Asset:        commitment.Asset,
+			Amount:       commitment.Amount,
+			OwnerPubKey:  [2]frontend.Variable{commitment.OwnerPubKey.X, commitment.OwnerPubKey.Y},
+			SpentAddress: commitment.SpentAddress,
+			ViewPubKey:   [2]frontend.Variable{commitment.ViewPubKey.X, commitment.ViewPubKey.Y},
+			AuditPubKey:  [2]frontend.Variable{commitment.AuditPubKey.X, commitment.AuditPubKey.Y},
+			FreezeFlag:   commitment.FreezeFlag,
+			Blinding:     commitment.Blinding,
 		},
 		OwnerMemoHash: ownerMemo[len(ownerMemo)-1],
 		AuditMemoHash: auditMemo[len(auditMemo)-1],
