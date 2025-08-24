@@ -57,7 +57,7 @@ func (c *CommitmentHash) Bytes() [32]byte {
 	return c.CommitmentHash.Bytes()
 }
 
-func (c *CommitmentHash) Nullifier(ownerPrivateKey PrivateKey) Nullifier {
+func (c *CommitmentHash) GetNullifier(ownerPrivateKey PrivateKey) Nullifier {
 	nullifierHasher := poseidon2.NewMerkleDamgardHasher()
 
 	commitmentHashBytes := c.Bytes()
