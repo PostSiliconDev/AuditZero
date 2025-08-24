@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuditZero - Auditable Cross-Chain Gas-fee zkPayments</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="circuit-bg"></div>
+    
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="logo.png" alt="AuditZero Logo" class="logo-img">
+                <span>AuditZero</span>
+            </div>
+            <div class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#solution">Solution</a>
+                <a href="#workflow">Workflow</a>
+                <a href="#roadmap">Roadmap</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-logo">
+                    <img src="logo.png" alt="AuditZero Logo" class="hero-logo-img">
+                </div>
+                <h1 class="hero-title">AuditZero</h1>
+                <h2 class="hero-subtitle">Auditable Cross-Chain Gas-fee zkPayments</h2>
+                <a href="https://github.com/PostSiliconDev/AuditZero" class="hero-brand">Show Me Code</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problems Section -->
+    <section id="problems" class="problems">
+        <div class="container">
+            <h2 class="section-title">Problems in Current Payment?</h2>
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <div class="problem-icon privacy-icon"></div>
+                    <h3>Lack of Privacy</h3>
+                    <p>Full transparency exposes customer purchases and merchant revenues.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon audit-icon"></div>
+                    <h3>Auditability Gap</h3>
+                    <p>Existing zk-payment privacy solutions hide sender, receiver, and amount, preventing transaction verification by auditors.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon fees-icon"></div>
+                    <h3>High Gas Fees</h3>
+                    <p>Excessive fees make micro-payments impractical</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon interop-icon"></div>
+                    <h3>Limited Interoperability</h3>
+                    <p>Payments are confined within isolated blockchains, restricting seamless cross-chain commerce.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section id="solution" class="solution">
+        <div class="container">
+            <h2 class="section-title">Our Solution: Privacy and Auditability Combined</h2>
+            <div class="solution-grid">
+                <div class="solution-card">
+                    <h3>Auditable ZK</h3>
+                    <div class="solution-features">
+                        <p>zk-proofs conceal sender, receiver, and amount from the public blockchain.</p>
+                        <p>Built-in auditable keys enable regulators and authorized auditors to verify transactions without compromising privacy.</p>
+                    </div>
+                </div>
+                <div class="solution-card">
+                    <h3>Aggregated Proof</h3>
+                    <div class="solution-features">
+                        <p>Aggregates multiple zk-transactions into a single proof for gas efficiency.</p>
+                        <p>Users pay zero gas fees as decentralized aggregators batch transactions, drastically reducing costs.</p>
+                    </div>
+                </div>
+                <div class="solution-card">
+                    <h3>Cross chain</h3>
+                    <div class="solution-features">
+                        <p>Smart contracts deployed on major blockchains enable cross-chain payments.</p>
+                        <p>A unified ledger supports seamless, low-cost payments across multiple chains, overcoming interoperability barriers.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Table -->
+    <section id="comparison" class="comparison">
+        <div class="container">
+            <h2 class="section-title">Transparent vs ZK vs AZK</h2>
+            <div class="comparison-table">
+                <div class="table-header">
+                    <div class="header-cell"></div>
+                    <div class="header-cell">Visible to others</div>
+                    <div class="header-cell">Visible to auditors</div>
+                    <div class="header-cell">Fee</div>
+                    <div class="header-cell">Cross-chain</div>
+                </div>
+                <div class="table-row">
+                    <div class="row-label">Transparent (Origin)</div>
+                    <div class="table-cell negative">Yes</div>
+                    <div class="table-cell positive">Yes</div>
+                    <div class="table-cell neutral">Standard</div>
+                    <div class="table-cell negative">No</div>
+                </div>
+                <div class="table-row">
+                    <div class="row-label">ZK Transfer</div>
+                    <div class="table-cell positive">No</div>
+                    <div class="table-cell negative">No</div>
+                    <div class="table-cell negative">High</div>
+                    <div class="table-cell negative">No</div>
+                </div>
+                <div class="table-row highlight">
+                    <div class="row-label">AuditZero</div>
+                    <div class="table-cell positive">No</div>
+                    <div class="table-cell positive">Yes</div>
+                    <div class="table-cell positive">Free</div>
+                    <div class="table-cell positive">Yes</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow Section -->
+    <section id="workflow" class="workflow">
+        <div class="container">
+            <h2 class="section-title">How AuditZero Works: Workflow</h2>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="step-icon user-icon"></div>
+                    <div class="step-content">
+                        <h3>User generates zk payment proof</h3>
+                        <p>hiding transaction details publicly.</p>
+                    </div>
+                </div>
+                <div class="workflow-arrow"></div>
+                <div class="workflow-step">
+                    <div class="step-icon aggregator-icon"></div>
+                    <div class="step-content">
+                        <h3>Aggregator compresses</h3>
+                        <p>many proofs into a single zk-proof to submit on-chain, eliminating per-transaction gas fees.</p>
+                    </div>
+                </div>
+                <div class="workflow-arrow"></div>
+                <div class="workflow-step">
+                    <div class="step-icon auditor-icon"></div>
+                    <div class="step-content">
+                        <h3>Auditor (Authorized)</h3>
+                        <p>uses audit key to decrypt and verify transaction details securely.</p>
+                    </div>
+                </div>
+                <div class="workflow-arrow"></div>
+                <div class="workflow-step">
+                    <div class="step-icon merchant-icon"></div>
+                    <div class="step-content">
+                        <h3>Merchants receive</h3>
+                        <p>private, low-cost/gas-fee payments across chains with full auditability.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Business Model -->
+    <section id="business" class="business">
+        <div class="container">
+            <h2 class="section-title">Derivative applications</h2>
+            <div class="business-models">
+                <div class="business-card">
+                    <div class="business-icon payment-icon"></div>
+                    <h3>Payment App</h3>
+                    <p>Transaction Batching Fees generate revenue from merchants or aggregators using zk-batching payments</p>
+                </div>
+                <div class="business-card">
+                    <div class="business-icon saas-icon"></div>
+                    <h3>Audit SaaS</h3>
+                    <p>Enterprise SaaS offers custom audit tooling to regulated enterprises requiring tailored compliance solutions.</p>
+                </div>
+                <div class="business-card">
+                    <div class="business-icon stripe-icon"></div>
+                    <h3>Decentralized Stripe</h3>
+                    <p>The infrastructure that powers billions of auditable crypto payments worldwide.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section id="roadmap" class="roadmap">
+        <div class="container">
+            <h2 class="section-title">Roadmap</h2>
+            <h3 class="section-subtitle">zk-Payment Development and Adoption</h3>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-date">2025 Q3</div>
+                    <div class="timeline-content">
+                        <h4>Auditable ZK Payment & Aggregated Proof</h4>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2025 Q4</div>
+                    <div class="timeline-content">
+                        <h4>Gas-fee zkPayments Application</h4>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2026 Q1</div>
+                    <div class="timeline-content">
+                        <h4>Enterprise Audit SaaS & Tools</h4>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2026</div>
+                    <div class="timeline-content">
+                        <h4> Decentralized Stripe</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-logo">
+                        <img src="logo.png" alt="AuditZero Logo" class="contact-logo-img">
+                    </div>
+                    <h2>Contact Us</h2>
+                    <div class="contact-links">
+                        <a href="https://github.com/PostSiliconDev" target="_blank">https://github.com/PostSiliconDev</a>
+                        <a href="https://x.com/PostSiliconDev" target="_blank">https://x.com/PostSiliconDev</a>
+                        <a href="mailto:hi@postsilicon.dev">hi@postsilicon.dev</a>
+                    </div>
+                </div>
+                <div class="contact-visual">
+                    <div class="code-snippet">
+                        <div class="code-line">function <span class="keyword">storeProducts</span>() {</div>
+                        <div class="code-line">&nbsp&nbspreturn {</div>
+                        <div class="code-line">&nbsp&nbsp&nbsp&nbsp<span class="property">product</span>: <span class="string">"AuditZero"</span>,</div>
+                        <div class="code-line">&nbsp&nbsp&nbsp&nbsp<span class="property">value</span>: <span class="string">"privacy + audit"</span></div>
+                        <div class="code-line">&nbsp&nbsp}</div>
+                        <div class="code-line">}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>
