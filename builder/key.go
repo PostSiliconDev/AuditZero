@@ -12,6 +12,10 @@ type PrivateKey struct {
 	PrivateKey fr.Element
 }
 
+func (k *PrivateKey) Bytes() [32]byte {
+	return k.PrivateKey.Bytes()
+}
+
 func (k *PrivateKey) PublicKey() PublicKey {
 	base := twistededwards.GetEdwardsCurve().Base
 
@@ -51,4 +55,21 @@ type Address struct {
 
 func (a *Address) Bytes() [32]byte {
 	return a.Address.Bytes()
+}
+
+type SharedKey struct {
+	SharedKey twistededwards.PointAffine
+}
+
+func NewSharedKey(senderPrivateKey PrivateKey, receiverPublicKey PublicKey) SharedKey {
+	sharedKey := twistededwards.PointAffine{}
+
+	var privateKeyBig big.Int
+	senderPrivateKey.PrivateKey.BigInt(&privateKeyBig)
+
+	sharedKey.ScalarMultiplication(&receiverPublicKey.PublicKey, &privateKeyBig)
+
+	return SharedKey{
+		SharedKey: sharedKey,
+	}
 }
